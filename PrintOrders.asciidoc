@@ -1,0 +1,436 @@
++*In[1]:*+
+[source, ipython3]
+----
+# Print out the orders
+
+----
+
+
++*In[2]:*+
+[source, ipython3]
+----
+import os
+from pathlib import Path
+from datetime import datetime
+
+# This is the file that was downloaded from https://newmarketchurch.breezechms.com/forms/entries/557986
+weekly_orders = r"C:\Users\ralph\Downloads\PANTRY-ORDER-FORM-11223.xlsx"
+title_date = '11/02/2023'
+
+last_run = '10/17/2023 15:00'
+current_run = datetime.now()
+runmode = 'all'
+# runmode = 'update'
+
+# The number of labels to print for each shopper
+number_of_labels = 6
+
+# Get the exported filename for use in the report.
+filename = Path(weekly_orders)
+name = filename.name.replace(filename.suffix, '', -1)
+
+filename = 'NCC Food Pantry Orders' 
+title = filename + ' ' + title_date
+
+# This file is created by this script and is to be imported at the same web page.
+upload_file = os.path.join(os.path.dirname(weekly_orders), filename +'.html')
+label_file = os.path.join(os.path.dirname(weekly_orders), filename +' labels.html')
+# upload_file
+----
+
+
++*In[3]:*+
+[source, ipython3]
+----
+import numpy as np
+import pandas as pd
+
+# Read in the downloaded Excel file 
+allorders = pd.read_excel(weekly_orders)
+received = len(allorders.index)
+print('{count} orders in input.'.format(count = received))
+----
+
+
++*Out[3]:*+
+----
+38 orders in input.
+----
+
+
++*In[4]:*+
+[source, ipython3]
+----
+from datetime import datetime, timedelta
+
+modes = {
+    'all': 'All orders received this week',
+    'update': 'All orders received since {date}'.format(date = last_run),
+    'special': 'Scpecial criteria were used.'
+    }
+
+# Only process recent orders.
+if runmode == 'all':
+    starttime = datetime.strptime(title_date, '%m/%d/%Y') - timedelta(days=5)
+elif runmode == 'update':
+    starttime = datetime.strptime(last_run, '%m/%d/%Y %H:%M')
+else:
+    starttime = datetime.today() - timedelta(days=7)
+
+allorders = allorders[pd.to_datetime(allorders['Date']) > starttime]  
+
+printed = len(allorders.index)
+print('{count} orders filtered by date and time.'.format(count = printed))
+----
+
+
++*Out[4]:*+
+----
+5 orders filtered by date and time.
+----
+
+
++*In[5]:*+
+[source, ipython3]
+----
+# Coalesce columns to simplify the order form.
+
+# Combine first and last name.
+allorders.insert(1, 'Name', allorders['First Name'] + ' ' + allorders['Last Name'])
+
+# Format the Zip code correctly.
+allorders['Zip'] = allorders['Zip'].astype(str).str.pad(5,fillchar='0')
+
+# Combine address elements into a single address field.
+allorders.insert(5, 'Address', allorders['Street Address'] + '<br>' + allorders['City'] + ' ' + allorders['State'] + ' ' + allorders['Zip'])
+
+# Replace "NaN" values with blanks.
+allorders = allorders.replace(np.nan, '')
+
+# Drop the fields we combined.
+# allorders = allorders.drop(columns=['Date', 'First Name', 'Last Name', 'Street Address', 'City', 'State', 'Zip'])
+allorders = allorders.drop(columns=['Date', 'First Name', 'Last Name', 'Street Address', 'City', 'State', 'Zip'])
+----
+
+
++*In[6]:*+
+[source, ipython3]
+----
+# Aggregate multiple orders from the same name.
+
+duporderers = set()
+
+def concatenate(ser):
+    # Collect all the requests from all the orders and include each one just once.
+    br = '<br />'    # Order request seperator
+    contents = set()
+    if len(ser) > 1:
+        # Keep track of the names on multiple orders so they can be included on the cover sheet. 
+        duporderers.add(allorders['Name'].loc[ser.index[0]])
+    for elem in ser:
+        contents = contents.union(set((str(elem).split(br))))
+    contents.discard('')   # Don't keep blank requests.
+    return br.join(list(contents))
+        
+allorders = allorders.groupby('Name', as_index=False).aggregate(concatenate)
+
+allorders = allorders.sort_values(by = 'Pickup Time')
+
+deduped = len(allorders.index)
+print('{count} orders deduped.'.format(count = deduped))
+print('Duplicate orders receivd from {people}'.format(people = duporderers))
+----
+
+
++*Out[6]:*+
+----
+5 orders deduped.
+Duplicate orders receivd from set()
+----
+
+
++*In[7]:*+
+[source, ipython3]
+----
+# Collect the summary for only refrigerated items. ("page 1")
+# Include only the following fields in the Summary.
+summary = allorders[[
+    'Name', 
+    'Number of people in household', 
+    'Pickup Time',
+    'Address', 
+    'Email', 
+    'Phone', 
+    'MEATS/FROZEN ITEMS', 
+    'REFRIGERATED ITEMS', 
+]]
+summary = summary.sort_values(by = 'Pickup Time') 
+----
+
+
++*In[8]:*+
+[source, ipython3]
+----
+def formatshoppers(date, data):
+    output = ''
+    
+    rowvars = {
+        'key' : None,
+        'val' : None
+    }
+    for _, row in data.iterrows():
+        rowtext = ''
+        # Format each field as a row in a table.
+        for i in range(len(data.columns)):
+            rowvars['key'] = data.columns[i]
+            rowvars['val'] = row.iloc[i]
+            rowtext += rowhtml.render(rowvars)
+        
+        # Create a page using the above table.
+        output += shopperhtml.render({'date': date, 'data': rowtext, 'shoppername': row['Name']})
+    
+    return output
+----
+
+
++*In[9]:*+
+[source, ipython3]
+----
+from jinja2 import Template
+
+# Define HTML templates using Jinja2 for printing the data.
+
+# Template for the whole report, including style.
+
+orders = Template('''
+<!DOCTYPE html>
+<style>
+    h1 { 
+            break-before: recto; 
+            font-family: Arial;
+        }
+    table tr td { font-family: Arial; }
+    table { width: 100%; }
+    th { font-family: Arial; font-size: 7mm; }
+    td { border-bottom: 1px solid #ddd; }
+    td.category { width: 35%; }
+</style>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>{{title}}</title>
+</head>
+<body>
+{{body}}
+</body>
+</html>
+''')
+
+# Template for each shopper
+# TODO: Should we make the title more useful? 
+#       Different titles for main page and summary page?
+shopperhtml = Template('''
+<h1 class="shopper-name">PANTRY ORDER FORM ({{date}})</h1>
+<table>
+<thead><tr><th colspan=2>{{shoppername}}</th></tr></thead>
+{{data}}
+</table>
+''')
+
+coversheet = Template('''
+<h2>NCC Pantry Order Print Cover Sheet for {{date}}</h2>
+<dl>
+<dt>Total number of orders in this print file</dt>
+<dd><b>{{deduped}}</b></dd>
+<dt>Order forms in input file (before removing old and duplicate orders)</dt>
+<dd>{{received}}</dd>
+<dt>Printing orders since</dt>
+<dd>{{starttime}}</dd>
+<dt>Report run at</dt>
+<dd>{{runtime}}</dd>
+<dt>Input File</dt>
+<dd>{{input_file}}</dd>
+<dt>Output File</dt>
+<dd>{{output_file}}</dd>
+{% for duper in dupers %}
+    <dt>Multiple Orders received from</dt>
+    <dd>{{duper}}</dd>
+{% endfor %}
+</dl>
+
+''')
+
+sectionheader = '''
+<h1>One Page Summaries for Refrigerated Items</h1>
+'''
+
+# Template for each row
+rowhtml = Template('<tr><td class="category">{{key}}</td><td>{{val}}</td></tr>')
+
+----
+
+
++*In[10]:*+
+[source, ipython3]
+----
+# Build the report using Jinja2.
+output = coversheet.render({'received': received, 
+                            'printed': printed, 
+                            'deduped': deduped, 
+                            'date': title_date,
+                            'input_file': weekly_orders,
+                            'output_file': upload_file, 
+                            'dupers': duporderers,
+                            'starttime': starttime,
+                            'runtime': current_run.strftime("%Y-%m-%d %H:%M:%S"),
+                           })
+output += formatshoppers(title_date, allorders) 
+output += sectionheader
+output += formatshoppers(title_date, summary)
+
+html = orders.render({'title': name, 'body': output})
+----
+
+
++*In[11]:*+
+[source, ipython3]
+----
+# Write out the file to print.
+with open(upload_file, 'w') as f:
+    f.write(html)
+print('Wrote {file}'.format(file = upload_file))
+----
+
+
++*Out[11]:*+
+----
+Wrote C:\Users\ralph\Downloads\NCC Food Pantry Orders.html
+----
+
+
++*In[12]:*+
+[source, ipython3]
+----
+from jinja2 import Template
+
+# Define HTML templates using Jinja2 for printing labels
+
+# Template for the address labels, including style.
+# Styled to fit Avery 8163 (2" x 4") labels. https://www.avery.com/help/article/avery-labels-2-inch-x-4-inch
+
+labels = Template('''<!DOCTYPE html>
+<style>
+    @media print {
+       @page {
+        margin-top: 0.45in;
+        margin-bottom: 0.45in;
+        margin-left: 0.06in;
+        margin-right: 0.06in;    
+        }
+    }
+.label {
+  box-sizing: border-box;
+  width: 4.0in;
+  height: 2.0in;
+  padding-top: 0.0in;
+  padding-right: 0.25in;
+  padding-bottom: 0.125in;
+  padding-left: 0.375in;
+  border: 0.0in solid black;
+  margin-left: 0.1in;
+  margin-right: 0.0in;
+  margin-top: 0.0in;
+  margin-bottom: 0.0in;
+  float: left;
+  font-family: Arial;
+  font-size: 1.0em;
+  text-align: left;
+  overflow: hidden;
+  outline: 0px white;
+  page-break-inside: avoid;
+}
+.name {
+  font-size: 1.5em;
+}
+</style>
+<html>
+<head>
+<meta charset="ISO-8859-1"/>
+</head>
+<body>{{body}}</body>
+</html>''')
+
+# Template for each shopper
+# TODO: Should we make the title more useful? 
+#       Different titles for main page and summary page?
+shopperlabel = Template('''
+<div class="label">
+<p class='name'>{{shoppername}}</p>
+<p>{{pickup}}</p>
+<p>{{address}}</p>
+<p>{{phone}}</p>
+</div>
+''')
+
+
+----
+
+
++*In[13]:*+
+[source, ipython3]
+----
+output = ''
+for _, row in summary.iterrows():
+    output += number_of_labels * shopperlabel.render({
+        'shoppername': row['Name'], 
+        'pickup': row['Pickup Time'], 
+        'address': row['Address'], 
+        'phone': row['Phone']
+    })
+
+html = labels.render({'body': output})
+----
+
+
++*In[14]:*+
+[source, ipython3]
+----
+# Write out the file to print.
+with open(label_file, 'w') as f:
+    f.write(html)
+print('Wrote {file}'.format(file = label_file))
+----
+
+
++*Out[14]:*+
+----
+Wrote C:\Users\ralph\Downloads\NCC Food Pantry Orders labels.html
+----
+
+
++*In[15]:*+
+[source, ipython3]
+----
+# Requires https://wkhtmltopdf.org/index.html
+# Added to path (C:\Program Files\wkhtmltopdf\bin) to environment via virtualenv activate.bat ("C:\Users\ralph\Envs\breeze\Scripts\activate")
+import pdfkit
+
+# print(os.path.splitext(label_file)[0]+'.pdf')
+pdfkit.from_file(label_file, os.path.splitext(label_file)[0]+'.pdf')
+
+pdfkit.from_file(upload_file, os.path.splitext(upload_file)[0]+'.pdf')
+
+----
+
+
++*Out[15]:*+
+----True----
+
+
++*In[16]:*+
+[source, ipython3]
+----
+# Optional: Display the report here.
+import IPython
+# IPython.display.HTML(html)
+----
