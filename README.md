@@ -19,3 +19,5 @@ The scripts use pandas dataframes to work with the data. See https://pandas.pyda
 Jinja2 is used to create html output for printing and reporting. See https://pypi.org/project/Jinja2/.
 
 I've used [pdfkit](https://pypi.org/project/pdfkit/), which depends on [wkhtmltopdf](https://wkhtmltopdf.org/), to get print files. I'm not happy with this, both because it doesn't seem to work well and it makes the dependencies more complex.
+
+I'm looking at building the scripts to run under [docker](https://www.docker.com/) so they can be better run in different environments. This is a project still under development.
