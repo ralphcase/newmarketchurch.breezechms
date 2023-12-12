@@ -12,7 +12,7 @@ These scripts use Python. Python virtual environments are recommended. See https
 
 I like virtualenvwrapper to make it easier to work with virtual environments. See https://pypi.org/project/virtualenvwrapper-win/.
 
-Development and use has been done with Jupiter Lab. See https://jupyter.org/install for installation instructions.
+Development and use has been done with Jupyter Lab. See https://jupyter.org/install for installation instructions.
 
 The scripts use pandas dataframes to work with the data. See https://pandas.pydata.org/.
 
@@ -21,3 +21,5 @@ Jinja2 is used to create html output for printing and reporting. See https://pyp
 I've used [pdfkit](https://pypi.org/project/pdfkit/), which depends on [wkhtmltopdf](https://wkhtmltopdf.org/), to get print files. I'm not happy with this, both because it doesn't seem to work well and it makes the dependencies more complex.
 
 I'm looking at building the scripts to run under [docker](https://www.docker.com/) so they can be better run in different environments. This is a project still under development.
+
+https://github.com/dawillcox/pyBreezeChMS - A Python wrapper for the Breeze API is used to simplify working with https://app.breezechms.com/api. 
