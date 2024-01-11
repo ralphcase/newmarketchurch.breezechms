@@ -18,7 +18,10 @@ The scripts use pandas dataframes to work with the data. See https://pandas.pyda
 
 Jinja2 is used to create html output for printing and reporting. See https://pypi.org/project/Jinja2/.
 
-I've used [pdfkit](https://pypi.org/project/pdfkit/), which depends on [wkhtmltopdf](https://wkhtmltopdf.org/), to get print files. I'm not happy with this, both because it doesn't seem to work well and it makes the dependencies more complex.
+Printing from html with css is dependent on the OS and browser. I couldn't find any combination that works correctly for all the cases we need.
+Instead, we convert the html to pdf, which can be reliably printed.
+This depends on **Rapid API** yakpdf - HTML to PDF to format the html output as pdf for printing.
+https://rapidapi.com/yakpdf-yakpdf/api/yakpdf with limited free license that allows the level of service we need for the weekly printing.
 
 I'm looking at building the scripts to run under [docker](https://www.docker.com/) so they can be better run in different environments. This is a project still under development.
 
