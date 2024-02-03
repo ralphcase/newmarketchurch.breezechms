@@ -12,6 +12,7 @@ from breeze_chms_api import breeze
 def help():
     print("""
     This script takes one argument - the name of a giving file.
+    
     To create a giving file, select the criteria you want from https://newmarketchurch.breezechms.com/payments/reports/ and 'Download as Excel'. 
     """)
     
