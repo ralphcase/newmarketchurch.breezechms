@@ -60,9 +60,11 @@ number_of_labels = 6
 
 # Get the exported filename for use in the report.
 import os
+import tempfile
 from pathlib import Path
 
-local_path = Path(os.environ['TEMP'])
+# local_path = Path(os.environ['TEMP'])
+local_path = tempfile.gettempdir()
 
 filename = 'NCC Food Pantry Orders' 
 title = filename + ' ' + title_date
