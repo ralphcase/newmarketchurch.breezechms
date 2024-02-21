@@ -70,8 +70,8 @@ filename = 'NCC Food Pantry Orders'
 title = filename + ' ' + title_date
 
 # These files are created by this script.
-order_print_file = os.path.join(os.path.dirname(local_path), filename +'.html')
-label_file = os.path.join(os.path.dirname(local_path), filename +' labels.html')
+order_pdf_file = os.path.join(os.path.dirname(local_path), filename +'.pdf')
+label_pdf_file = os.path.join(os.path.dirname(local_path), filename +' labels.pdf')
 
 
 # In[5]:
@@ -392,7 +392,7 @@ output = coversheet.render({'received': ordercount,
                             'recurring': len(recurringorders),
                             'date': title_date,
                             'input_file': 'from API',
-                            'output_file': order_print_file, 
+                            'output_file': order_pdf_file, 
                             'dupers': duporderers,
                             'starttime': starttime,
                             'modemsg': modes[runmode],
@@ -501,7 +501,6 @@ labels_html = labels.render({'body': output})
 # Optional: Display the report here.
 # import IPython
 # IPython.display.HTML(orders_html)
-# display(orders_html)
 
 
 # In[18]:
@@ -544,12 +543,10 @@ def to_pdf(source_html):
 
 # Write out the files to print.
 
-order_pdf_file = os.path.splitext(order_print_file)[0]+'.pdf'
 with open(order_pdf_file, 'wb') as f:
     f.write(to_pdf(orders_html))
 print('Wrote {file}'.format(file = order_pdf_file))
 
-label_pdf_file = os.path.splitext(label_file)[0]+'.pdf' 
 with open(label_pdf_file, 'wb') as f:
     f.write(to_pdf(labels_html))
 print('Wrote {file}'.format(file = label_pdf_file))
