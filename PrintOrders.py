@@ -72,8 +72,8 @@ filename = 'NCC Food Pantry Orders'
 title = filename + ' ' + title_date
 
 # These files are created by this script.
-order_pdf_file = os.path.join(os.path.dirname(local_path), filename +'.pdf')
-label_pdf_file = os.path.join(os.path.dirname(local_path), filename +' labels.pdf')
+order_pdf_file = os.path.join(local_path, filename +'.pdf')
+label_pdf_file = os.path.join(local_path, filename +' labels.pdf')
 
 
 # In[5]:
