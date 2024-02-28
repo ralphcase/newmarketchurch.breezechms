@@ -64,7 +64,9 @@ import tempfile
 from pathlib import Path
 
 # local_path = Path(os.environ['TEMP'])
-local_path = tempfile.gettempdir()
+local_path = os.path.normpath(os.path.expanduser('~/Desktop'))
+if not os.path.exists(local_path):
+    local_path = tempfile.gettempdir()
 
 filename = 'NCC Food Pantry Orders' 
 title = filename + ' ' + title_date
