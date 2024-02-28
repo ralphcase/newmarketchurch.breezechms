@@ -164,9 +164,6 @@ for order in online_orders:
 
 allorders = pd.DataFrame(all_api_orders, columns=[f['name'] for f in form_fields])
 
-# Replace "NaN" values with blanks.
-allorders = allorders.replace(np.nan, '')
-
 printed = len(allorders.index)
 print('{count} orders filtered by date and time.'.format(count = printed))
 
@@ -213,6 +210,9 @@ paper_order_labels = [
         'phone': '659-4911'
     }
     ]
+
+# Replace "NaN" values with blanks.
+allorders = allorders.replace(np.nan, '')
 
 printed = len(allorders.index)
 
@@ -336,6 +336,8 @@ coversheet = Template('''
 <dd>{{received}}</dd>
 <dt>"Recurring" orders included without an online order form</dt>
 <dd>{{recurring}}</dd>
+<dt>Orders for Gordon Ave</dt>
+<dd>{{gordonave}}</dd>
 <dt>Printing orders since</dt>
 <dd>{{starttime}} - {{modemsg}}</dd>
 <dt>Report run at</dt>
@@ -383,6 +385,13 @@ def formatshoppers(date, data):
 # In[14]:
 
 
+# len(allorders[allorders['Address'].str.lower().str.contains("granite")])
+# allorders
+
+
+# In[15]:
+
+
 # Build the report using Jinja2.
 
 # Cover Sheet
@@ -390,6 +399,7 @@ output = coversheet.render({'received': ordercount,
                             'printed': printed, 
                             'deduped': deduped, 
                             'recurring': len(recurringorders),
+                            'gordonave': len(allorders[allorders['Address'].str.lower().str.contains("gordon")]),
                             'date': title_date,
                             'input_file': 'from API',
                             'output_file': order_pdf_file, 
@@ -411,7 +421,7 @@ output += formatshoppers(title_date, summary)
 orders_html = orders.render({'body': output})
 
 
-# In[15]:
+# In[16]:
 
 
 # Define HTML templates using Jinja2 for printing labels
@@ -474,7 +484,7 @@ shopperlabel = Template('''
 
 
 
-# In[16]:
+# In[17]:
 
 
 # Create labels to be attached to the bags for the orders.
@@ -484,10 +494,13 @@ output = ''
 for po in paper_order_labels:
     output += number_of_labels * shopperlabel.render(po)
 
-for _, row in summary.iterrows():
+for _, row in allorders.iterrows():
+    pickupdelivery = row['Pickup Time']
+    if pickupdelivery == 'Delivery - must be on pre-approved list' and 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip() not in ['', 'None']:
+        pickupdelivery = 'Delivery - ' + row['Instructions for Delivery Driver'] 
     output += number_of_labels * shopperlabel.render({
         'shoppername': row['Name'], 
-        'pickup': row['Pickup Time'], 
+        'pickup': pickupdelivery,
         'address': row['Address'], 
         'phone': row['Phone']
     })
@@ -495,7 +508,7 @@ for _, row in summary.iterrows():
 labels_html = labels.render({'body': output})
 
 
-# In[17]:
+# In[18]:
 
 
 # Optional: Display the report here.
@@ -503,7 +516,7 @@ labels_html = labels.render({'body': output})
 # IPython.display.HTML(orders_html)
 
 
-# In[18]:
+# In[19]:
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
@@ -538,7 +551,7 @@ def to_pdf(source_html):
     return response.content
 
 
-# In[19]:
+# In[20]:
 
 
 # Write out the files to print.
