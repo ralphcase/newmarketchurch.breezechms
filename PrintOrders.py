@@ -281,7 +281,7 @@ summary = allorders[[
     'Address', 
     'Email', 
     'Phone', 
-    'MEATS/FROZEN ITEMS', 
+    'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
     'REFRIGERATED ITEMS', 
     'Anything else we should know? ',
 ]]
