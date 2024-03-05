@@ -498,8 +498,8 @@ for po in paper_order_labels:
 
 for _, row in allorders.iterrows():
     pickupdelivery = row['Pickup Time']
-    if pickupdelivery == 'Delivery - must be on pre-approved list' and 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip() not in ['', 'None']:
-        pickupdelivery = 'Delivery - ' + row['Instructions for Delivery Driver'] 
+    if pickupdelivery == 'Delivery' and 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip().lower() not in ['', 'none']:
+        pickupdelivery += ": " + row['Instructions for Delivery Driver'] 
     output += number_of_labels * shopperlabel.render({
         'shoppername': row['Name'], 
         'pickup': pickupdelivery,
