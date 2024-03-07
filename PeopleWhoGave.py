@@ -2,6 +2,7 @@ import sys
 import os
 from collections import OrderedDict
 from datetime import datetime, timedelta, date
+import time
 import urllib.parse
 import numpy as np
 import pandas as pd
@@ -52,7 +53,7 @@ fields = [
 
 for index, gift in gifts.iterrows():
     if pd.notna(gift['Person ID']) and gift['Fund(s)'] != 'help offset the processing fee':
-        time.sleep(3.5)
+        time.sleep(3.5)       # https://support.breezechms.com/hc/en-us/articles/360001324153-API-Advanced-Custom-Development recommends a 3.5 second delay.
         row = OrderedDict()
         person = breeze_api.get_person_details(person_id = gift['Person ID'])
         family = person['family']
