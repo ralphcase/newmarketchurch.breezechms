@@ -56,13 +56,26 @@ for index, gift in gifts.iterrows():
         time.sleep(3.5)       # https://support.breezechms.com/hc/en-us/articles/360001324153-API-Advanced-Custom-Development recommends a 3.5 second delay.
         row = OrderedDict()
         person = breeze_api.get_person_details(person_id = gift['Person ID'])
+        # print("person", person['id'], person['first_name'], person['last_name'], person)
+        fullname = person['first_name'] + ' ' + person['last_name']
         family = person['family']
         if len(family) > 0:
-            fname = []
+            # fname = []
             for member in family:
-                if member['role_name'] in ['Head of Household', 'Spouse']:
-                    fname.append(member['details']['first_name'])
-            person['first_name'] = ' & '.join(fname)
+                if member['person_id'] == person['id']:
+                    if member['role_name'] not in ['Head of Household', 'Spouse']:
+                        fullname = person['first_name'] + ' ' + person['last_name']
+                        break
+                else:
+                    if member['role_name'] in ['Head of Household', 'Spouse']:
+                        if person['last_name'] == member['details']['last_name']:
+                            fullname = person['first_name'] + ' & ' + member['details']['first_name'] + ' ' + person['last_name']
+                        else: 
+                            fullname = person['first_name'] + ' ' + person['last_name'] + ' & ' + member['details']['first_name'] + ' ' + member['details']['last_name'] 
+                        # print(" member", member['person_id'], member['role_name'], member['details']['first_name'], member['details']['last_name'])
+                    # fname.append(member['details']['first_name'])
+            # person['first_name'] = ' & '.join(fname)
+        row['name'] = fullname
         for field in fields:
             row[field] = person[field]
         row['Fund(s)'] = gift['Fund(s)']
