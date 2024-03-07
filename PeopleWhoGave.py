@@ -52,6 +52,7 @@ fields = [
 
 for index, gift in gifts.iterrows():
     if pd.notna(gift['Person ID']) and gift['Fund(s)'] != 'help offset the processing fee':
+        time.sleep(3.5)
         row = OrderedDict()
         person = breeze_api.get_person_details(person_id = gift['Person ID'])
         family = person['family']
