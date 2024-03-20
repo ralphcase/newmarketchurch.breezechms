@@ -138,7 +138,11 @@ for order in online_orders:
             # If the value is a dict, look it up in the form fields.
             # If it is a list of dicts, look up each and concatenate them with '<br >'.
             if isinstance(value, dict):
-                value = [op for op in field['options'] if op['option_id'] == value['value']][0]['name']
+                try:
+                    value = [op for op in field['options'] if op['option_id'] == value['value']][0]['name']
+                except IndexError:
+                    print("No option selected for required field.")
+                    print(value, order)
             if isinstance(value, list):
                 selections = []
                 for onevalue in value:
@@ -261,7 +265,8 @@ def concatenate(ser):
         
 allorders = allorders.groupby('Name', as_index=False).aggregate(concatenate)
 
-allorders = allorders.sort_values(by = 'Pickup Time')
+# allorders = allorders.sort_values(by = 'Pickup Time')
+allorders = allorders.sort_values(by = 'Select onsite pickup OR home delivery:')
 
 deduped = len(allorders.index)
 print('{count} orders deduped.'.format(count = deduped))
@@ -274,17 +279,21 @@ if len(duporderers) > 0:
 
 # Collect the summary for only refrigerated items. ("page 1")
 # Include only the following fields in the Summary.
-summary = allorders[[
+headerFields = [
     'Name', 
     'Number of people in household', 
-    'Pickup Time',
+    'Select onsite pickup OR home delivery:',
     'Address', 
     'Email', 
     'Phone', 
+    'Anything else we should know? ',
+]
+refrigFields = [
     'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
     'REFRIGERATED ITEMS', 
-    'Anything else we should know? ',
-]]
+]
+summary = allorders[headerFields + refrigFields]
+allorders = allorders.drop(columns = refrigFields)
 
 
 # In[12]:
@@ -497,7 +506,7 @@ for po in paper_order_labels:
     output += number_of_labels * shopperlabel.render(po)
 
 for _, row in allorders.iterrows():
-    pickupdelivery = row['Pickup Time']
+    pickupdelivery = row['Select onsite pickup OR home delivery:']
     if pickupdelivery == 'Delivery' and 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip().lower() not in ['', 'none']:
         pickupdelivery += ": " + row['Instructions for Delivery Driver'] 
     output += number_of_labels * shopperlabel.render({
