@@ -177,6 +177,13 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 # In[7]:
 
 
+# We may want to do something to detect when the form changes in ways that will be a problem.
+# form_fields
+
+
+# In[8]:
+
+
 # # This cell was run once to save the orders for recurring orders.
 # # Edit as appropriate and rerun to update the recurring orders.
 
@@ -184,7 +191,7 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 # recurring.to_pickle('recurring.pk1')
 
 
-# In[8]:
+# In[9]:
 
 
 # "Hard Code" some items that are usually needed but not available from the forms.
@@ -192,10 +199,10 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 
 # Add recurring orders - orders that have been saved and need to be filled even without a current order form.
 # Get recurring orders that don't have order forms. 
-recurringorders = pd.read_pickle('recurring.pk1')
-if runmode == 'weekly':
-    allorders = pd.concat([allorders, recurringorders],ignore_index=True)
-# recurringorders = []
+# recurringorders = pd.read_pickle('recurring.pk1')
+# if runmode == 'weekly':
+#     allorders = pd.concat([allorders, recurringorders],ignore_index=True)
+recurringorders = []
 
 # Recurring shoppers. These people may not check in, but should be counted when we report on shoppers served.
 recurringshoppers = [
@@ -223,7 +230,7 @@ allorders = allorders.replace(np.nan, '')
 printed = len(allorders.index)
 
 
-# In[9]:
+# In[10]:
 
 
 # Check in the shoppers from the order forms for the shopping event.
@@ -240,7 +247,7 @@ for id in shopper_ids:
     # display(check)
 
 
-# In[10]:
+# In[11]:
 
 
 # Aggregate multiple orders from the same name.
@@ -274,7 +281,7 @@ if len(duporderers) > 0:
     print('Duplicate orders received from {people}'.format(people = duporderers))
 
 
-# In[11]:
+# In[12]:
 
 
 # Collect the summary for only refrigerated items. ("page 1")
@@ -289,14 +296,15 @@ headerFields = [
     'Anything else we should know? ',
 ]
 refrigFields = [
-    'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
+    # 'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
+    'FROZEN ITEMS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family',
     'REFRIGERATED ITEMS', 
 ]
 summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
 
 
-# In[12]:
+# In[13]:
 
 
 # Define HTML templates using Jinja2 for printing the data.
@@ -372,7 +380,7 @@ sectionheader = '''
 rowhtml = Template('<tr><td class="category">{{key}}</td><td>{{val}}</td></tr>')
 
 
-# In[13]:
+# In[14]:
 
 
 # Format the order forms as html.
@@ -391,13 +399,6 @@ def formatshoppers(date, data):
         output += shopperhtml.render({'date': date, 'data': rowtext, 'shoppername': row['Name']})
     
     return output
-
-
-# In[14]:
-
-
-# len(allorders[allorders['Address'].str.lower().str.contains("granite")])
-# allorders
 
 
 # In[15]:
