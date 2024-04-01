@@ -21,8 +21,9 @@ shopper_form_id = '791210'
 from breeze_chms_api import breeze
 
 # Initialize API 
+import config
 breeze_api = breeze.breeze_api(breeze_url='https://newmarketchurch.breezechms.com',
-                               api_key='8dfd0a0d7f5aaec745a73542f58eb8ba')
+                               api_key=config.api_key)
 
 
 # In[2]:
