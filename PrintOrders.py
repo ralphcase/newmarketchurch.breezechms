@@ -13,7 +13,8 @@
 # - Delete old order entries to clean up the Breeze page.
 
 # Breeze forms used
-breeze_forms = 'https://newmarketchurch.breezechms.com/forms/entries/'
+ncc_url = 'https://newmarketchurch.breezechms.com'
+breeze_forms = ncc_url + '/forms/entries/'
 order_form_id = '557986'
 shopper_form_id = '791210'
 
@@ -22,8 +23,7 @@ from breeze_chms_api import breeze
 
 # Initialize API 
 import config
-breeze_api = breeze.breeze_api(breeze_url='https://newmarketchurch.breezechms.com',
-                               api_key=config.api_key)
+breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.api_key)
 
 
 # In[2]:

@@ -38,8 +38,7 @@ print('{count} people in input.'.format(count = len(gifts.index)))
 
 # Initialize API 
 import config
-breeze_api = breeze.breeze_api(breeze_url=ncc_url,
-                               api_key=config.api_key)
+breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.api_key)
 
 output = []
 
