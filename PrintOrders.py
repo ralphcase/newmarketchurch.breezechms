@@ -378,7 +378,7 @@ sectionheader = '''
 '''
 
 # Template for each row
-rowhtml = Template('<tr><td class="category">{{key}}</td><td>{{val}}</td></tr>')
+rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td></tr>')
 
 
 # In[14]:
@@ -393,8 +393,9 @@ def formatshoppers(date, data):
         rowtext = ''
         # Format each field as a row in a table.
         for i in range(len(data.columns)):
-            rowtext += rowhtml.render({'key' : data.columns[i],
-                                       'val' : row.iloc[i]})
+            if row.iloc[i] != "":
+                rowtext += rowhtml.render({'category' : data.columns[i],
+                                           'items' : row.iloc[i]})
         
         # Create a page using the above table.
         output += shopperhtml.render({'date': date, 'data': rowtext, 'shoppername': row['Name']})
