@@ -6,7 +6,6 @@ from datetime import datetime
 ncc_url = 'https://newmarketchurch.breezechms.com'
 breeze_forms = ncc_url + '/forms/entries/'
 subscribe_form_id = '460630'
-# subscribe_form_id = '830670'
 
 # Set up Breeze API wrapper
 from breeze_chms_api import breeze
