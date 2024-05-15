@@ -381,6 +381,7 @@ sectionheader = '''
 rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td></tr>')
 
 
+
 # In[14]:
 
 
@@ -404,6 +405,48 @@ def formatshoppers(date, data):
 
 
 # In[15]:
+
+
+# Templates for the Bulk item picking pages
+
+bulkheader = Template('<h1 style="page-break-before:right;">{{title}}</h1>')
+
+bulkcategory = Template('''
+<h2>{{category}}</h2>
+<table>
+  <thead>
+    <tr><th>Item</th><th>Count</th></tr>
+  </thead>
+  <tbody>
+    {% for item, count in items.items() %}
+      <tr><td>{{ item }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+''')
+
+
+# In[16]:
+
+
+# Print out totals or order quantities for refrigerated and frozen items.
+from collections import Counter
+
+def formatbulkitems(summary):
+    output = ''
+    for time in set(summary['Select onsite pickup OR home delivery:']):
+        output += bulkheader.render({'title': time})
+
+        for rs in refrigFields:
+            totalitems = []
+            for item in summary.loc[summary['Select onsite pickup OR home delivery:'] == time][rs]:
+                totalitems += [it for it in item.split('<br />') if it != '']  
+            output += bulkcategory.render({'category': rs, 'items': Counter(totalitems)})
+
+    return output
+
+
+# In[17]:
 
 
 # Build the report using Jinja2.
@@ -432,10 +475,12 @@ output += sectionheader
 # Refrigerated items
 output += formatshoppers(title_date, summary)
 
+output += formatbulkitems(summary)
+
 orders_html = orders.render({'body': output})
 
 
-# In[16]:
+# In[18]:
 
 
 # Define HTML templates using Jinja2 for printing labels
@@ -498,7 +543,7 @@ shopperlabel = Template('''
 
 
 
-# In[17]:
+# In[19]:
 
 
 # Create labels to be attached to the bags for the orders.
@@ -522,7 +567,7 @@ for _, row in allorders.iterrows():
 labels_html = labels.render({'body': output})
 
 
-# In[18]:
+# In[20]:
 
 
 # Optional: Display the report here.
@@ -530,7 +575,7 @@ labels_html = labels.render({'body': output})
 # IPython.display.HTML(orders_html)
 
 
-# In[19]:
+# In[21]:
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
@@ -565,7 +610,7 @@ def to_pdf(source_html):
     return response.content
 
 
-# In[20]:
+# In[22]:
 
 
 # Write out the files to print.
