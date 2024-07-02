@@ -110,8 +110,11 @@ import pandas as pd
 # Get the order form entries.
 online_orders = breeze_api.list_form_entries(form_id = order_form_id, details=True)
 # The entry response array has key values that correspond to the form fields.
-ordercount = len(online_orders)
-print('{count} orders in input.'.format(count = ordercount))
+if online_orders is None:
+    print('No orders were found in Breeze.')
+else:
+    ordercount = len(online_orders)
+    print('{count} orders in input.'.format(count = ordercount))
 
 # Get the form fields needed to make sense of the entries.
 form_fields = breeze_api.list_form_fields(form_id = order_form_id)
@@ -177,14 +180,14 @@ printed = len(allorders.index)
 print('{count} orders filtered by date and time.'.format(count = printed))
 
 
-# In[7]:
+# In[ ]:
 
 
 # We may want to do something to detect when the form changes in ways that will be a problem.
 # form_fields
 
 
-# In[8]:
+# In[ ]:
 
 
 # # This cell was run once to save the orders for recurring orders.
@@ -194,7 +197,7 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 # recurring.to_pickle('recurring.pk1')
 
 
-# In[9]:
+# In[ ]:
 
 
 # "Hard Code" some items that are usually needed but not available from the forms.
@@ -233,7 +236,7 @@ allorders = allorders.replace(np.nan, '')
 printed = len(allorders.index)
 
 
-# In[10]:
+# In[ ]:
 
 
 # Check in the shoppers from the order forms for the shopping event.
@@ -250,7 +253,7 @@ for id in shopper_ids:
     # display(check)
 
 
-# In[11]:
+# In[ ]:
 
 
 # Aggregate multiple orders from the same name.
@@ -284,7 +287,7 @@ if len(duporderers) > 0:
     print('Duplicate orders received from {people}'.format(people = duporderers))
 
 
-# In[12]:
+# In[ ]:
 
 
 # Collect the summary for only refrigerated items. ("page 1")
@@ -309,7 +312,7 @@ summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
 
 
-# In[13]:
+# In[ ]:
 
 
 # Define HTML templates using Jinja2 for printing the data.
@@ -388,7 +391,7 @@ rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td>
 
 
 
-# In[14]:
+# In[ ]:
 
 
 # Format the order forms as html.
@@ -410,7 +413,7 @@ def formatshoppers(date, data):
     return output
 
 
-# In[15]:
+# In[ ]:
 
 
 # Templates for the Bulk item picking pages
@@ -432,7 +435,7 @@ bulkcategory = Template('''
 ''')
 
 
-# In[16]:
+# In[ ]:
 
 
 # Print out totals or order quantities for refrigerated and frozen items.
@@ -452,7 +455,7 @@ def formatbulkitems(summary):
     return output
 
 
-# In[17]:
+# In[ ]:
 
 
 # Build the report using Jinja2.
@@ -487,7 +490,7 @@ output += formatbulkitems(summary)
 orders_html = orders.render({'body': output})
 
 
-# In[18]:
+# In[ ]:
 
 
 # Define HTML templates using Jinja2 for printing labels
@@ -550,7 +553,7 @@ shopperlabel = Template('''
 
 
 
-# In[19]:
+# In[ ]:
 
 
 # Create labels to be attached to the bags for the orders.
@@ -574,7 +577,7 @@ for _, row in allorders.iterrows():
 labels_html = labels.render({'body': output})
 
 
-# In[20]:
+# In[ ]:
 
 
 # Optional: Display the report here.
@@ -582,7 +585,7 @@ labels_html = labels.render({'body': output})
 # IPython.display.HTML(orders_html)
 
 
-# In[21]:
+# In[ ]:
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
@@ -617,7 +620,7 @@ def to_pdf(source_html):
     return response.content
 
 
-# In[22]:
+# In[ ]:
 
 
 # Write out the files to print.
