@@ -101,6 +101,7 @@ else:
 
 
 from collections import OrderedDict
+import sys
 import numpy as np
 import pandas as pd
 
@@ -112,6 +113,7 @@ online_orders = breeze_api.list_form_entries(form_id = order_form_id, details=Tr
 # The entry response array has key values that correspond to the form fields.
 if online_orders is None:
     print('No orders were found in Breeze.')
+    sys.exit()
 else:
     ordercount = len(online_orders)
     print('{count} orders in input.'.format(count = ordercount))
