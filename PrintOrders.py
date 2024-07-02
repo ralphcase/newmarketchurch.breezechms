@@ -85,7 +85,7 @@ label_pdf_file = os.path.join(local_path, filename +' labels.pdf')
 modes = {
     'weekly': 'All orders received this week',
     'update': 'All orders received since {date}'.format(date = last_run),
-    'special': 'Scpecial criteria were used.'
+    'special': 'Special criteria were used.'
     }
 
 # Only process recent orders.
@@ -124,41 +124,43 @@ all_api_orders = []
 for order in online_orders:
     row = OrderedDict()
     for field, value in order['response'].items():
-        field = [f for f in form_fields if f['field_id'] == field][0]
-        # print(field, '\nv---', type(value), value)
-        # 'Name' and 'Address' values are dicts specific to those data types.
-        if field['field_type'] == 'name':
-            row['Date'] = value['created_on']
-            row['Name'] = value['first_name'].strip() + ' ' + value['last_name'].strip()
-        elif field['field_type'] == 'address':
-            value = [v for v in value if v['is_primary'] == '1'][0]
-            # This is a hack. We use '<br />' to delimit separate items in the same field. 
-            # We use '<br/>' here only for the line break and not to delimit items.
-            row['Address'] = value['street_address'].strip() + '<br/>' + value['city'].strip() + ' ' + value['state'].strip() + ' ' + value['zip'].strip()
-        else:
-            # If the value is a dict, look it up in the form fields.
-            # If it is a list of dicts, look up each and concatenate them with '<br >'.
-            if isinstance(value, dict):
-                try:
-                    value = [op for op in field['options'] if op['option_id'] == value['value']][0]['name']
-                except IndexError:
-                    print("No option selected for required field.")
-                    print(value, order)
-            if isinstance(value, list):
-                selections = []
-                for onevalue in value:
-                    lookup = [op for op in field['options'] if op['option_id'] == onevalue['value']]
-                    if len(lookup) == 0:
-                        # The item is not on the form. This is common for older forms as the form usually changes each week.
-                        if pd.to_datetime(row['Date']) >= starttime:
-                            print("Order from {name} on {date} includes item not on the form.".format(order=order['response'], name = row['Name'], date=row['Date']))
-                            print("form field: ", field['name'])
-                            print("value:", onevalue)
-                    else: 
-                        selections.append(lookup[0]['name'].strip())
-                value = '<br />'.join(selections)
+        existing_field = [f for f in form_fields if f['field_id'] == field]
+        if len(existing_field) > 0:
+            # If no existing form field, this field has been deleted from the form - skip it.
+            field = existing_field[0]
+            # 'Name' and 'Address' values are dicts specific to those data types.
+            if field['field_type'] == 'name':
+                row['Date'] = value['created_on']
+                row['Name'] = value['first_name'].strip() + ' ' + value['last_name'].strip()
+            elif field['field_type'] == 'address':
+                value = [v for v in value if v['is_primary'] == '1'][0]
+                # This is a hack. We use '<br />' to delimit separate items in the same field. 
+                # We use '<br/>' here only for the line break and not to delimit items.
+                row['Address'] = value['street_address'].strip() + '<br/>' + value['city'].strip() + ' ' + value['state'].strip() + ' ' + value['zip'].strip()
+            else:
+                # If the value is a dict, look it up in the form fields.
+                # If it is a list of dicts, look up each and concatenate them with '<br >'.
+                if isinstance(value, dict):
+                    try:
+                        value = [op for op in field['options'] if op['option_id'] == value['value']][0]['name']
+                    except IndexError:
+                        print("No option selected for required field.")
+                        print(value, order)
+                if isinstance(value, list):
+                    selections = []
+                    for onevalue in value:
+                        lookup = [op for op in field['options'] if op['option_id'] == onevalue['value']]
+                        if len(lookup) == 0:
+                            # The item is not on the form. This is common for older forms as the form usually changes each week.
+                            if pd.to_datetime(row['Date']) >= starttime:
+                                print("Order from {name} on {date} includes item not on the form.".format(order=order['response'], name = row['Name'], date=row['Date']))
+                                print("form field: ", field['name'])
+                                print("value:", onevalue)
+                        else: 
+                            selections.append(lookup[0]['name'].strip())
+                    value = '<br />'.join(selections)
             
-            row[field['name']] = value
+                row[field['name']] = value
             
     # Include only those that match the time period for this run.
     if pd.to_datetime(row['Date']) >= starttime:
@@ -207,11 +209,11 @@ recurringorders = []
 
 # Recurring shoppers. These people may not check in, but should be counted when we report on shoppers served.
 recurringshoppers = [
-    '30397406',   # Rosa Soto
     '30397442',   # Jay Stillman
     '30908360',   # Julie Walker-Bourbon
     '30396500',   # Britt Gleason
     '30396178',   # Ed Comeau
+    '30397394',   # Henry Smith
 ]
 shopper_ids.extend(recurringshoppers)
 
@@ -295,10 +297,12 @@ headerFields = [
     'Email', 
     'Phone', 
     'Anything else we should know? ',
+    'PLEASE LIST ANY ALLERGIES/DIETARY RESTRICTIONS - Just type "n/a" if none.',
+    # 'Indicate any dietary restrictions (Peanut allergy, low sodium, vegetarian only, etc.)',
 ]
 refrigFields = [
     # 'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
-    'FROZEN ITEMS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family',
+    'FROZEN ITEMS - Please select only items you need - up to 4 this week only',
     'REFRIGERATED ITEMS', 
 ]
 summary = allorders[headerFields + refrigFields]
@@ -352,6 +356,8 @@ coversheet = Template('''
 <dl>
 <dt>Total number of orders in this print file</dt>
 <dd><b>{{deduped}}</b></dd>
+<dt>Total number people Checked in</dt>
+<dd><b>{{checkin}}</b></dd>
 <dt>Order forms in input file (before removing old and duplicate orders)</dt>
 <dd>{{received}}</dd>
 <dt>"Recurring" orders included without an online order form</dt>
@@ -455,6 +461,7 @@ def formatbulkitems(summary):
 output = coversheet.render({'received': ordercount, 
                             'printed': printed, 
                             'deduped': deduped, 
+                            'checkin': len(shopper_ids),
                             'recurring': len(recurringorders),
                             'gordonave': len(allorders[allorders['Address'].str.lower().str.contains("gordon")]),
                             'date': title_date,
