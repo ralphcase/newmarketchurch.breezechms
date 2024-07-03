@@ -182,14 +182,14 @@ printed = len(allorders.index)
 print('{count} orders filtered by date and time.'.format(count = printed))
 
 
-# In[ ]:
+# In[7]:
 
 
 # We may want to do something to detect when the form changes in ways that will be a problem.
 # form_fields
 
 
-# In[ ]:
+# In[8]:
 
 
 # # This cell was run once to save the orders for recurring orders.
@@ -199,7 +199,7 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 # recurring.to_pickle('recurring.pk1')
 
 
-# In[ ]:
+# In[9]:
 
 
 # "Hard Code" some items that are usually needed but not available from the forms.
@@ -238,7 +238,7 @@ allorders = allorders.replace(np.nan, '')
 printed = len(allorders.index)
 
 
-# In[ ]:
+# In[10]:
 
 
 # Check in the shoppers from the order forms for the shopping event.
@@ -255,7 +255,7 @@ for id in shopper_ids:
     # display(check)
 
 
-# In[ ]:
+# In[11]:
 
 
 # Aggregate multiple orders from the same name.
@@ -289,7 +289,7 @@ if len(duporderers) > 0:
     print('Duplicate orders received from {people}'.format(people = duporderers))
 
 
-# In[ ]:
+# In[12]:
 
 
 # Collect the summary for only refrigerated items. ("page 1")
@@ -307,14 +307,15 @@ headerFields = [
 ]
 refrigFields = [
     # 'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
-    'FROZEN ITEMS - Please select only items you need - up to 4 this week only',
+    'FROZEN ITEMS',
     'REFRIGERATED ITEMS', 
+    'Special Requests/Notes for Fresh and Frozen Items:',
 ]
 summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
 
 
-# In[ ]:
+# In[13]:
 
 
 # Define HTML templates using Jinja2 for printing the data.
@@ -393,7 +394,7 @@ rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td>
 
 
 
-# In[ ]:
+# In[14]:
 
 
 # Format the order forms as html.
@@ -415,7 +416,7 @@ def formatshoppers(date, data):
     return output
 
 
-# In[ ]:
+# In[15]:
 
 
 # Templates for the Bulk item picking pages
@@ -437,7 +438,7 @@ bulkcategory = Template('''
 ''')
 
 
-# In[ ]:
+# In[16]:
 
 
 # Print out totals or order quantities for refrigerated and frozen items.
@@ -457,7 +458,7 @@ def formatbulkitems(summary):
     return output
 
 
-# In[ ]:
+# In[17]:
 
 
 # Build the report using Jinja2.
@@ -492,7 +493,7 @@ output += formatbulkitems(summary)
 orders_html = orders.render({'body': output})
 
 
-# In[ ]:
+# In[18]:
 
 
 # Define HTML templates using Jinja2 for printing labels
@@ -555,7 +556,7 @@ shopperlabel = Template('''
 
 
 
-# In[ ]:
+# In[19]:
 
 
 # Create labels to be attached to the bags for the orders.
@@ -579,7 +580,7 @@ for _, row in allorders.iterrows():
 labels_html = labels.render({'body': output})
 
 
-# In[ ]:
+# In[20]:
 
 
 # Optional: Display the report here.
@@ -587,7 +588,7 @@ labels_html = labels.render({'body': output})
 # IPython.display.HTML(orders_html)
 
 
-# In[ ]:
+# In[21]:
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
@@ -622,7 +623,7 @@ def to_pdf(source_html):
     return response.content
 
 
-# In[ ]:
+# In[22]:
 
 
 # Write out the files to print.
