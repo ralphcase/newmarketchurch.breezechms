@@ -219,6 +219,7 @@ recurringshoppers = [
     '30396500',   # Britt Gleason
     '30396178',   # Ed Comeau
     '30397394',   # Henry Smith
+    '30396002',   # Ashley Bowley
 ]
 shopper_ids.extend(recurringshoppers)
 
@@ -252,7 +253,6 @@ shoppingevent = [e for e in events if e['name'] == 'Food Pantry'][0]
 
 for id in shopper_ids:
     check = breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
-    # display(check)
 
 
 # In[11]:
@@ -280,8 +280,10 @@ def concatenate(ser):
         
 allorders = allorders.groupby('Name', as_index=False).aggregate(concatenate)
 
+pickupchoice = 'Select pickup or delivery:'
+
 # allorders = allorders.sort_values(by = 'Pickup Time')
-allorders = allorders.sort_values(by = 'Select onsite pickup OR home delivery:')
+allorders = allorders.sort_values(by = pickupchoice)
 
 deduped = len(allorders.index)
 print('{count} orders deduped.'.format(count = deduped))
@@ -294,10 +296,11 @@ if len(duporderers) > 0:
 
 # Collect the summary for only refrigerated items. ("page 1")
 # Include only the following fields in the Summary.
+
 headerFields = [
     'Name', 
     'Number of people in household', 
-    'Select onsite pickup OR home delivery:',
+    pickupchoice,
     'Address', 
     'Email', 
     'Phone', 
@@ -446,12 +449,12 @@ from collections import Counter
 
 def formatbulkitems(summary):
     output = ''
-    for time in set(summary['Select onsite pickup OR home delivery:']):
+    for time in set(summary[pickupchoice]):
         output += bulkheader.render({'title': time})
 
         for rs in refrigFields:
             totalitems = []
-            for item in summary.loc[summary['Select onsite pickup OR home delivery:'] == time][rs]:
+            for item in summary.loc[summary[pickupchoice] == time][rs]:
                 totalitems += [it for it in item.split('<br />') if it != '']  
             output += bulkcategory.render({'category': rs, 'items': Counter(totalitems)})
 
@@ -567,7 +570,7 @@ for po in paper_order_labels:
     output += number_of_labels * shopperlabel.render(po)
 
 for _, row in allorders.iterrows():
-    pickupdelivery = row['Select onsite pickup OR home delivery:']
+    pickupdelivery = row[pickupchoice]
     if pickupdelivery == 'Delivery' and 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip().lower() not in ['', 'none']:
         pickupdelivery += ": " + row['Instructions for Delivery Driver'] 
     output += number_of_labels * shopperlabel.render({
