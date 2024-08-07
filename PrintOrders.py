@@ -23,7 +23,7 @@ from breeze_chms_api import breeze
 
 # Initialize API 
 import config
-breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.api_key)
+breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.breeze_api_key)
 
 
 # In[2]:
@@ -603,7 +603,7 @@ import requests
 def to_pdf(source_html):
     # Using https://rapidapi.com/yakpdf-yakpdf/api/yakpdf with limited free license.
 
-    url = "https://yakpdf.p.rapidapi.com/pdf"
+    url = config.rapid_api_url
 
     payload = {
     	"source": { "html": source_html },
@@ -620,8 +620,8 @@ def to_pdf(source_html):
     }
     headers = {
     	"content-type": "application/json",
-    	"X-RapidAPI-Key": "bcf6330bd6msh0670320c9453831p16412djsn374499f34ed2",
-    	"X-RapidAPI-Host": "yakpdf.p.rapidapi.com"
+    	"X-RapidAPI-Key": config.rapid_api_key,
+    	"X-RapidAPI-Host": config.rapid_api_host
     }
 
     response = requests.post(url, json=payload, headers=headers)
