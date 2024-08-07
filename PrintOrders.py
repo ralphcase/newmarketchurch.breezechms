@@ -254,6 +254,9 @@ shoppingevent = [e for e in events if e['name'] == 'Food Pantry'][0]
 for id in shopper_ids:
     check = breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
 
+attendance = len(breeze_api.list_attendance(instance_id=shoppingevent['id']))
+print('{count} shoppers checked in.'.format(count = attendance))
+
 
 # In[11]:
 
@@ -470,7 +473,7 @@ def formatbulkitems(summary):
 output = coversheet.render({'received': ordercount, 
                             'printed': printed, 
                             'deduped': deduped, 
-                            'checkin': len(shopper_ids),
+                            'checkin': attendance,
                             'recurring': len(recurringorders),
                             'gordonave': len(allorders[allorders['Address'].str.lower().str.contains("gordon")]),
                             'date': title_date,
