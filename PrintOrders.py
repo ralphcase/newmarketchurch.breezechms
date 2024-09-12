@@ -251,8 +251,16 @@ print('{count} shoppers to check in.'.format(count = len(shopper_ids)))
 events = breeze_api.list_events(start=title_date, end=title_date)
 shoppingevent = [e for e in events if e['name'] == 'Food Pantry'][0]
 
+eligible_ids = [e['id'] for e in breeze_api.list_eligible_people(instance_id=shoppingevent['id'])]
+ineligible_shoppers = []
+
 for id in shopper_ids:
-    check = breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
+    if id in eligible_ids:
+        check = breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
+    else:
+        print('Shopper ', id, ' is not eligible to check in.')
+        person = breeze_api.get_person_details(person_id = id)
+        ineligible_shoppers.append('{fname} {lname} ({id})'.format(id = id, fname = person['first_name'], lname = person['last_name']))
 
 attendance = len(breeze_api.list_attendance(instance_id=shoppingevent['id']))
 print('{count} shoppers checked in.'.format(count = attendance))
@@ -307,7 +315,7 @@ headerFields = [
     'Address', 
     'Email', 
     'Phone', 
-    'Anything else we should know? ',
+    # 'Anything else we should know? ',
     'PLEASE LIST ANY ALLERGIES/DIETARY RESTRICTIONS - Just type "n/a" if none.',
     # 'Indicate any dietary restrictions (Peanut allergy, low sodium, vegetarian only, etc.)',
 ]
@@ -315,7 +323,7 @@ refrigFields = [
     # 'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
     'FROZEN ITEMS',
     'REFRIGERATED ITEMS', 
-    'Special Requests/Notes for Fresh and Frozen Items:',
+    'Notes for Fresh and Frozen Items Only. Please use Special Notes section at beginning of order for other requests.',
 ]
 summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
@@ -387,6 +395,10 @@ coversheet = Template('''
 {% for duper in dupers %}
     <dt>Multiple Orders received from</dt>
     <dd>{{duper}}</dd>
+{% endfor %}
+{% for shopper in ineligible %}
+    <dt>Order form from ineligible shopper. Probably need a valid Shopper Information Form.</dt>
+    <dd>{{shopper}}</dd>
 {% endfor %}
 </dl>
 ''')
@@ -480,6 +492,7 @@ output = coversheet.render({'received': ordercount,
                             'input_file': 'from API',
                             'output_file': order_pdf_file, 
                             'dupers': duporderers,
+                            'ineligible': ineligible_shoppers,
                             'starttime': starttime,
                             'modemsg': modes[runmode],
                             'runtime': current_run.strftime("%Y-%m-%d %H:%M:%S"),
