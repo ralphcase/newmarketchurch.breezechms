@@ -305,12 +305,6 @@ if len(duporderers) > 0:
 # In[12]:
 
 
-# allorders.columns
-
-
-# In[13]:
-
-
 # Collect the summary for only refrigerated items. ("page 1")
 # Include only the following fields in the Summary.
 
@@ -335,7 +329,7 @@ summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
 
 
-# In[14]:
+# In[13]:
 
 
 # Define HTML templates using Jinja2 for printing the data.
@@ -418,7 +412,7 @@ rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td>
 
 
 
-# In[15]:
+# In[14]:
 
 
 # Format the order forms as html.
@@ -440,7 +434,7 @@ def formatshoppers(date, data):
     return output
 
 
-# In[16]:
+# In[15]:
 
 
 # Templates for the Bulk item picking pages
@@ -462,7 +456,7 @@ bulkcategory = Template('''
 ''')
 
 
-# In[17]:
+# In[16]:
 
 
 # Print out totals or order quantities for refrigerated and frozen items.
@@ -482,7 +476,7 @@ def formatbulkitems(summary):
     return output
 
 
-# In[18]:
+# In[17]:
 
 
 # Build the report using Jinja2.
@@ -518,7 +512,7 @@ output += formatbulkitems(summary)
 orders_html = orders.render({'body': output})
 
 
-# In[19]:
+# In[18]:
 
 
 # Define HTML templates using Jinja2 for printing labels
@@ -581,7 +575,7 @@ shopperlabel = Template('''
 
 
 
-# In[20]:
+# In[19]:
 
 
 # Create labels to be attached to the bags for the orders.
@@ -605,7 +599,7 @@ for _, row in allorders.iterrows():
 labels_html = labels.render({'body': output})
 
 
-# In[21]:
+# In[20]:
 
 
 # Optional: Display the report here.
@@ -613,7 +607,7 @@ labels_html = labels.render({'body': output})
 # IPython.display.HTML(orders_html)
 
 
-# In[22]:
+# In[21]:
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
@@ -648,7 +642,7 @@ def to_pdf(source_html):
     return response.content
 
 
-# In[23]:
+# In[22]:
 
 
 # Write out the files to print.
