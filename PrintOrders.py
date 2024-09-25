@@ -29,7 +29,9 @@ breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.breeze_api_key
 # In[2]:
 
 
-# This is the file that was downloaded from 
+# Show links to the needed form entries. 
+# Shoppers don't actually need to be connected to print orders, but they do need 
+# to be connected to run reports.
 print("Make sure new shoppers are connected - " + breeze_forms + shopper_form_id)
 print("Connect orders to people - " + breeze_forms + order_form_id)
 
@@ -172,7 +174,7 @@ for order in online_orders:
         shopper_ids.append(order['person_id'])   
         all_api_orders.append(row)
 
-    # Remove old entries
+    # Remove old entries from Breeze.
     if pd.to_datetime(row['Date']) < starttime - timedelta(days = 2):
         breeze_api.remove_form_entry(entry_id = order['id'])
 
@@ -505,9 +507,9 @@ output += formatshoppers(title_date, allorders)
 output += sectionheader
 
 # Refrigerated items
-output += formatshoppers(title_date, summary)
-
 output += formatbulkitems(summary)
+
+output += formatshoppers(title_date, summary)
 
 orders_html = orders.render({'body': output})
 
