@@ -319,13 +319,14 @@ headerFields = [
     'Phone', 
     # 'Anything else we should know? ',
     'PLEASE LIST ANY ALLERGIES/DIETARY RESTRICTIONS - Just type "n/a" if none.',
+    'Notes for your order (example: low sodium, low sugar, any items you might enjoy.)'
     # 'Indicate any dietary restrictions (Peanut allergy, low sodium, vegetarian only, etc.)',
 ]
 refrigFields = [
     # 'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
     'FROZEN ITEMS',
     'REFRIGERATED ITEMS', 
-    'Notes for Fresh and Frozen Items Only. Please use Special Notes section at beginning of order for other requests.',
+    # 'Notes for Fresh and Frozen Items Only. Please use Special Notes section at beginning of order for other requests.',
 ]
 summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
