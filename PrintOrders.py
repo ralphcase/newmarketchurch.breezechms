@@ -178,6 +178,9 @@ for order in online_orders:
     if pd.to_datetime(row['Date']) < starttime - timedelta(days = 2):
         breeze_api.remove_form_entry(entry_id = order['id'])
 
+if any(id is None for id in shopper_ids):
+    print("Unrecognized shopper. Were all form entries connected to people?")
+
 allorders = pd.DataFrame(all_api_orders, columns=[f['name'] for f in form_fields])
 
 printed = len(allorders.index)
@@ -250,7 +253,9 @@ printed = len(allorders.index)
 print('{count} shoppers to check in.'.format(count = len(shopper_ids)))
 
 # Find the shopping event by name and date.
-events = breeze_api.list_events(start=title_date, end=title_date)
+# print(breeze_api.list_calendars())
+food_pantry_calendar_id = '55532'
+events = breeze_api.list_events(start=title_date, end=title_date, category_id=food_pantry_calendar_id)
 shoppingevent = [e for e in events if e['name'] == 'Food Pantry'][0]
 
 eligible_ids = [e['id'] for e in breeze_api.list_eligible_people(instance_id=shoppingevent['id'])]
