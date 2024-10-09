@@ -12,9 +12,10 @@
 # - Check-In shoppers to this week's shopping event for all the orders.
 # - Delete old order entries to clean up the Breeze page.
 
+import config
+
 # Breeze forms used
-ncc_url = 'https://newmarketchurch.breezechms.com'
-breeze_forms = ncc_url + '/forms/entries/'
+breeze_forms = config.church_domain_url + '/forms/entries/'
 order_form_id = '557986'
 shopper_form_id = '791210'
 
@@ -22,8 +23,7 @@ shopper_form_id = '791210'
 from breeze_chms_api import breeze
 
 # Initialize API 
-import config
-breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.breeze_api_key)
+breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=config.breeze_api_key)
 
 
 # In[2]:
@@ -31,7 +31,7 @@ breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.breeze_api_key
 
 # Show links to the needed form entries. 
 # Shoppers don't actually need to be connected to print orders, but they do need 
-# to be connected to run reports.
+# to be connected to be checked in and to run reports.
 print("Make sure new shoppers are connected - " + breeze_forms + shopper_form_id)
 print("Connect orders to people - " + breeze_forms + order_form_id)
 
