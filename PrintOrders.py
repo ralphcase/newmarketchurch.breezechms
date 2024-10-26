@@ -256,6 +256,7 @@ print('{count} shoppers to check in.'.format(count = len(shopper_ids)))
 # print(breeze_api.list_calendars())
 food_pantry_calendar_id = '55532'
 events = breeze_api.list_events(start=title_date, end=title_date, category_id=food_pantry_calendar_id)
+# print(len(events), events)
 shoppingevent = [e for e in events if e['name'] == 'Food Pantry'][0]
 
 eligible_ids = [e['id'] for e in breeze_api.list_eligible_people(instance_id=shoppingevent['id'])]
@@ -266,8 +267,9 @@ for id in shopper_ids:
         check = breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
     else:
         print('Shopper ', id, ' is not eligible to check in.')
-        person = breeze_api.get_person_details(person_id = id)
-        ineligible_shoppers.append('{fname} {lname} ({id})'.format(id = id, fname = person['first_name'], lname = person['last_name']))
+        if id is not None:
+            person = breeze_api.get_person_details(person_id = id)
+            ineligible_shoppers.append('{fname} {lname} ({id})'.format(id = id, fname = person['first_name'], lname = person['last_name']))
 
 attendance = len(breeze_api.list_attendance(instance_id=shoppingevent['id']))
 print('{count} shoppers checked in.'.format(count = attendance))
