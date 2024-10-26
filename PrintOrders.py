@@ -194,28 +194,10 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 # form_fields
 
 
-# In[8]:
-
-
-# # This cell was run once to save the orders for recurring orders.
-# # Edit as appropriate and rerun to update the recurring orders.
-
-# recurring = allorders[allorders['Name'] == 'Rosa Soto']
-# recurring.to_pickle('recurring.pk1')
-
-
 # In[9]:
 
 
 # "Hard Code" some items that are usually needed but not available from the forms.
-
-
-# Add recurring orders - orders that have been saved and need to be filled even without a current order form.
-# Get recurring orders that don't have order forms. 
-# recurringorders = pd.read_pickle('recurring.pk1')
-# if runmode == 'weekly':
-#     allorders = pd.concat([allorders, recurringorders],ignore_index=True)
-recurringorders = []
 
 # Recurring shoppers. These people may not check in, but should be counted when we report on shoppers served.
 recurringshoppers = [
@@ -390,8 +372,6 @@ coversheet = Template('''
 <dd><b>{{checkin}}</b></dd>
 <dt>Order forms in input file (before removing old and duplicate orders)</dt>
 <dd>{{received}}</dd>
-<dt>"Recurring" orders included without an online order form</dt>
-<dd>{{recurring}}</dd>
 <dt>Orders for Gordon Ave</dt>
 <dd>{{gordonave}}</dd>
 <dt>Printing orders since</dt>
@@ -496,7 +476,6 @@ output = coversheet.render({'received': ordercount,
                             'printed': printed, 
                             'deduped': deduped, 
                             'checkin': attendance,
-                            'recurring': len(recurringorders),
                             'gordonave': len(allorders[allorders['Address'].str.lower().str.contains("gordon")]),
                             'date': title_date,
                             'input_file': 'from API',
