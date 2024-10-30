@@ -194,7 +194,7 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 # form_fields
 
 
-# In[9]:
+# In[8]:
 
 
 # "Hard Code" some items that are usually needed but not available from the forms.
@@ -226,7 +226,7 @@ allorders = allorders.replace(np.nan, '')
 printed = len(allorders.index)
 
 
-# In[10]:
+# In[9]:
 
 
 # Check in the shoppers from the order forms for the shopping event.
@@ -257,7 +257,7 @@ attendance = len(breeze_api.list_attendance(instance_id=shoppingevent['id']))
 print('{count} shoppers checked in.'.format(count = attendance))
 
 
-# In[11]:
+# In[10]:
 
 
 # Aggregate multiple orders from the same name.
@@ -293,7 +293,7 @@ if len(duporderers) > 0:
     print('Duplicate orders received from {people}'.format(people = duporderers))
 
 
-# In[12]:
+# In[11]:
 
 
 # Collect the summary for only refrigerated items. ("page 1")
@@ -321,7 +321,7 @@ summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
 
 
-# In[13]:
+# In[12]:
 
 
 # Define HTML templates using Jinja2 for printing the data.
@@ -402,7 +402,7 @@ rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td>
 
 
 
-# In[14]:
+# In[13]:
 
 
 # Format the order forms as html.
@@ -424,7 +424,7 @@ def formatshoppers(date, data):
     return output
 
 
-# In[15]:
+# In[14]:
 
 
 # Templates for the Bulk item picking pages
@@ -446,7 +446,7 @@ bulkcategory = Template('''
 ''')
 
 
-# In[16]:
+# In[15]:
 
 
 # Print out totals or order quantities for refrigerated and frozen items.
@@ -466,7 +466,7 @@ def formatbulkitems(summary):
     return output
 
 
-# In[17]:
+# In[16]:
 
 
 # Build the report using Jinja2.
@@ -501,7 +501,7 @@ output += formatshoppers(title_date, summary)
 orders_html = orders.render({'body': output})
 
 
-# In[18]:
+# In[17]:
 
 
 # Define HTML templates using Jinja2 for printing labels
@@ -564,7 +564,7 @@ shopperlabel = Template('''
 
 
 
-# In[19]:
+# In[18]:
 
 
 # Create labels to be attached to the bags for the orders.
@@ -588,7 +588,7 @@ for _, row in allorders.iterrows():
 labels_html = labels.render({'body': output})
 
 
-# In[20]:
+# In[19]:
 
 
 # Optional: Display the report here.
@@ -596,7 +596,7 @@ labels_html = labels.render({'body': output})
 # IPython.display.HTML(orders_html)
 
 
-# In[21]:
+# In[20]:
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
@@ -631,7 +631,7 @@ def to_pdf(source_html):
     return response.content
 
 
-# In[22]:
+# In[21]:
 
 
 # Write out the files to print.
