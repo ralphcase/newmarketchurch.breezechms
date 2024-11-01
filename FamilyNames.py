@@ -1,3 +1,6 @@
+# For each person in the input People file, use the Breeze API to check for a spouse.
+# Add a column with the two names together and remove the duplicate if both spouses are in the input file.
+
 import sys
 import os
 from collections import OrderedDict
@@ -30,19 +33,18 @@ output_file = r"AddressNames.csv"
 directory_path = os.path.dirname(os.path.abspath(givingreport))
 output_file = os.path.join(directory_path, output_file)
 
-ncc_url = r"https://newmarketchurch.breezechms.com"
-
 # Read in the downloaded Excel file 
 gifts = pd.read_excel(givingreport)
 print('{count} people in input.'.format(count = len(gifts.index)))
 
 # Initialize API 
 import config
-breeze_api = breeze.breeze_api(breeze_url=ncc_url, api_key=config.breeze_api_key)
+breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=config.breeze_api_key)
 
 output = []
 
-fields = [
+# Copy these fields from the input to the output.
+output_fields = [
     'first_name',
     'last_name',
     'street_address',
@@ -76,9 +78,10 @@ for index, gift in gifts.iterrows():
                             # Partners have different last names; use both.
                             fullname = person['first_name'] + ' ' + person['last_name'] + ' & ' + member['details']['first_name'] + ' ' + member['details']['last_name'] 
         row['name'] = fullname
-        for field in fields:
+        for field in output_fields:
             row[field] = person[field]
 
+        # Look for the same spouses already in the output. Include them only if they're not already there.
         found = False
         for already in output:
             if 'spouse_id' in row and already['person_id'] == row['spouse_id'] and already['spouse_id'] == row['person_id']:
