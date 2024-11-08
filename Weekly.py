@@ -13,15 +13,15 @@ def get_pantry_date():
 
 
 def fetch_event_attendance(pantry_date):
-    events = breeze_api.list_events(start=pantry_date, end=pantry_date, category_id=55532, details=0)
+    pantry_calendar = 55532
+    events = breeze_api.list_events(start=pantry_date, end=pantry_date, category_id=pantry_calendar, details=0)
     if not events:
         raise ValueError(f"No events found on {pantry_date}")
     return breeze_api.list_attendance(instance_id=events[0]['id'])
 
 
-def get_total_people_and_families(attendance):
+def get_total_people(attendance):
     total_people = 0
-    total_families = len(attendance)
 
     # This is the Breeze key for the profile field "How many people live in your household? (including yourself)"
     family_size_key = '1515006285'
@@ -34,15 +34,16 @@ def get_total_people_and_families(attendance):
         else:
             print(f"Missing family information for {profile['id']}: {profile['first_name']} {profile['last_name']}")
     
-    return total_people, total_families
+    return total_people
 
 
 def main():
     pantry_date = get_pantry_date()
     
     attendance = fetch_event_attendance(pantry_date)
-    
-    total_people, total_families = get_total_people_and_families(attendance)
+
+    total_families = len(attendance)    
+    total_people = get_total_people(attendance)
     
     # Estimate of the number of seniors fed from the food distributed at the Sunrise Center.
     base_senior_count = 25
