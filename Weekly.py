@@ -8,7 +8,7 @@ breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=conf
 
 def get_pantry_date():
     current_run = datetime.now()
-    thursday = current_run + timedelta(days= 3 - current_run.weekday())
+    thursday = current_run + timedelta(days = 3 - current_run.weekday())
     return thursday.strftime('%m/%d/%Y')
 
 
@@ -22,13 +22,13 @@ def fetch_event_attendance(pantry_date):
 def get_total_people_and_families(attendance):
     total_people = 0
     total_families = len(attendance)
-    
+
+    # This is the Breeze key for the profile field "How many people live in your household? (including yourself)"
+    family_size_key = '1515006285'
+        
     for person in attendance:
         profile = breeze_api.get_person_details(person_id=person['person_id'])
 
-        # This is the Breeze key for the profile field "How many people live in your household? (including yourself)"
-        family_size_key = '1515006285'
-        
         if family_size_key in profile['details']:
             total_people += int(profile['details'][family_size_key])
         else:
@@ -39,6 +39,7 @@ def get_total_people_and_families(attendance):
 
 def main():
     pantry_date = get_pantry_date()
+    
     attendance = fetch_event_attendance(pantry_date)
     
     total_people, total_families = get_total_people_and_families(attendance)
