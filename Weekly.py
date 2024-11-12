@@ -9,10 +9,7 @@ breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=conf
 def get_pantry_date():
     current_run = datetime.now()
     # If it's not Thursday yet, run for last week.
-    thurs = current_run.weekday()
-    if thurs < 3:
-        thurs = -4
-    thursday = current_run + timedelta(days = thurs - current_run.weekday())
+    thursday = current_run - timedelta(days = (current_run.weekday() - 3) % 7)
     return thursday.strftime('%m/%d/%Y')
 
 
