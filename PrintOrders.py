@@ -151,7 +151,7 @@ for order in online_orders:
                     try:
                         value = [op for op in field['options'] if op['option_id'] == value['value']][0]['name']
                     except IndexError:
-                        print("No option selected for required field.")
+                        print(f"Form entry error. No option selected for required field: {field}, and value: {value}.")
                         print(value, order)
                 if isinstance(value, list):
                     selections = []
@@ -238,7 +238,6 @@ print('{count} shoppers to check in.'.format(count = len(shopper_ids)))
 # print(breeze_api.list_calendars())
 food_pantry_calendar_id = '55532'
 events = breeze_api.list_events(start=title_date, end=title_date, category_id=food_pantry_calendar_id)
-# print(len(events), events)
 shoppingevent = [e for e in events if e['name'] == 'Food Pantry'][0]
 
 eligible_ids = [e['id'] for e in breeze_api.list_eligible_people(instance_id=shoppingevent['id'])]
@@ -282,7 +281,7 @@ def concatenate(ser):
         
 allorders = allorders.groupby('Name', as_index=False).aggregate(concatenate)
 
-pickupchoice = 'Select pickup or delivery:'
+pickupchoice = 'Select pickup time'
 
 # allorders = allorders.sort_values(by = 'Pickup Time')
 allorders = allorders.sort_values(by = pickupchoice)
