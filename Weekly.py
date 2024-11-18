@@ -42,7 +42,7 @@ def main():
     pantry_date = get_pantry_date()
     
     attendance = fetch_event_attendance(pantry_date)
-
+    
     total_families = len(attendance)    
     total_people = get_total_people(attendance)
     
