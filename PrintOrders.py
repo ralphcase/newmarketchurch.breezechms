@@ -102,6 +102,13 @@ else:
 # In[6]:
 
 
+# We may want to do something to detect when the form changes in ways that will be a problem.
+# form_fields
+
+
+# In[7]:
+
+
 from collections import OrderedDict
 import sys
 import numpy as np
@@ -125,6 +132,7 @@ form_fields = breeze_api.list_form_fields(form_id = order_form_id)
 
 # "Join" the order entries with the form fields.
 
+messages = []
 shopper_ids = []
 all_api_orders = []
 
@@ -180,18 +188,12 @@ for order in online_orders:
 
 if any(id is None for id in shopper_ids):
     print("Unrecognized shopper. Were all form entries connected to people?")
+    messages.append("Unrecognized shopper. Were all form entries connected to people?")
 
 allorders = pd.DataFrame(all_api_orders, columns=[f['name'] for f in form_fields])
 
 printed = len(allorders.index)
 print('{count} orders filtered by date and time.'.format(count = printed))
-
-
-# In[7]:
-
-
-# We may want to do something to detect when the form changes in ways that will be a problem.
-# form_fields
 
 
 # In[8]:
@@ -247,7 +249,8 @@ for id in shopper_ids:
     if id in eligible_ids:
         check = breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
     else:
-        print('Shopper ', id, ' is not eligible to check in.')
+        print(f'Shopper {id} is not eligible to check in.')
+        messages.append(f'Shopper {id} is not eligible to check in.')
         if id is not None:
             person = breeze_api.get_person_details(person_id = id)
             ineligible_shoppers.append('{fname} {lname} ({id})'.format(id = id, fname = person['first_name'], lname = person['last_name']))
@@ -365,6 +368,12 @@ shopperhtml = Template('''
 coversheet = Template('''
 <h2>NCC Pantry Order Print Cover Sheet for {{date}}</h2>
 <dl>
+<dt>Messages</dt>
+<dd>
+{% for m in messages %}
+    {{m}}</br>
+{% endfor %}
+</dd>
 <dt>Total number of orders in this print file</dt>
 <dd><b>{{deduped}}</b></dd>
 <dt>Total number people Checked in</dt>
@@ -381,14 +390,18 @@ coversheet = Template('''
 <dd>{{input_file}}</dd>
 <dt>Output File</dt>
 <dd>{{output_file}}</dd>
+<dt>Multiple Orders received from</dt>
+<dd>
 {% for duper in dupers %}
-    <dt>Multiple Orders received from</dt>
-    <dd>{{duper}}</dd>
+    {{duper}}</br>
 {% endfor %}
+</dd>
+<dt>Order form from ineligible shopper. Probably need a valid Shopper Information Form.</dt>
+<dd>
 {% for shopper in ineligible %}
-    <dt>Order form from ineligible shopper. Probably need a valid Shopper Information Form.</dt>
-    <dd>{{shopper}}</dd>
+    {{shopper}}</br>
 {% endfor %}
+</dd>
 </dl>
 ''')
 
@@ -477,6 +490,7 @@ output = coversheet.render({'received': ordercount,
                             'checkin': attendance,
                             'gordonave': len(allorders[allorders['Address'].str.lower().str.contains("gordon")]),
                             'date': title_date,
+                            'messages': messages,
                             'input_file': 'from API',
                             'output_file': order_pdf_file, 
                             'dupers': duporderers,
