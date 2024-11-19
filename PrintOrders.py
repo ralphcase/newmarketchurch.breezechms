@@ -105,8 +105,20 @@ else:
 # We may want to do something to detect when the form changes in ways that will be a problem.
 # form_fields
 
+pickupchoice = 'Select pickup time'
+
 
 # In[7]:
+
+
+messages = []
+
+def message(m):
+    print(m)
+    messages.append(m)
+
+
+# In[8]:
 
 
 from collections import OrderedDict
@@ -130,9 +142,16 @@ else:
 # Get the form fields needed to make sense of the entries.
 form_fields = breeze_api.list_form_fields(form_id = order_form_id)
 
+for profile_field in breeze_api.get_profile_fields():
+    if profile_field['name'] == 'Food Pantry Shopper Details':
+        # print(profile_field)
+        delivery_field = [field for field in profile_field['fields'] if field['name'] == 'Approved for Delivery'][0]['field_id']
+
+# print(online_orders[0])
+# print(form_fields)
+
 # "Join" the order entries with the form fields.
 
-messages = []
 shopper_ids = []
 all_api_orders = []
 
@@ -176,7 +195,16 @@ for order in online_orders:
                     value = '<br />'.join(selections)
             
                 row[field['name']] = value
-            
+
+    # Check if delivery is approved.
+    if 'delivery' in row[pickupchoice].lower():
+        if order['person_id'] is None:
+            message('Delivery ordered, but approval could not be checked since the order was not connected to a person.')
+        else:
+            profile = breeze_api.get_person_details(person_id=order['person_id'])
+            if not any(d.get('name') == 'Yes' for d in profile['details'][delivery_field]):
+                message(f"{profile['first_name']} {profile['last_name']} submitted an order for delivery, but was not approved for delivery.")
+                
     # Include only those that match the time period for this run.
     if pd.to_datetime(row['Date']) >= starttime:
         shopper_ids.append(order['person_id'])   
@@ -187,8 +215,7 @@ for order in online_orders:
         breeze_api.remove_form_entry(entry_id = order['id'])
 
 if any(id is None for id in shopper_ids):
-    print("Unrecognized shopper. Were all form entries connected to people?")
-    messages.append("Unrecognized shopper. Were all form entries connected to people?")
+    message("Unrecognized shopper. Were all form entries connected to people?")
 
 allorders = pd.DataFrame(all_api_orders, columns=[f['name'] for f in form_fields])
 
@@ -196,7 +223,7 @@ printed = len(allorders.index)
 print('{count} orders filtered by date and time.'.format(count = printed))
 
 
-# In[8]:
+# In[9]:
 
 
 # "Hard Code" some items that are usually needed but not available from the forms.
@@ -228,7 +255,7 @@ allorders = allorders.replace(np.nan, '')
 printed = len(allorders.index)
 
 
-# In[9]:
+# In[10]:
 
 
 # Check in the shoppers from the order forms for the shopping event.
@@ -247,19 +274,18 @@ ineligible_shoppers = []
 
 for id in shopper_ids:
     if id in eligible_ids:
-        check = breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
+        breeze_api.event_check_in(person_id=id, instance_id=shoppingevent['id'])
     else:
-        print(f'Shopper {id} is not eligible to check in.')
-        messages.append(f'Shopper {id} is not eligible to check in.')
+        message(f'Shopper {id} is not eligible to check in.')
         if id is not None:
             person = breeze_api.get_person_details(person_id = id)
-            ineligible_shoppers.append('{fname} {lname} ({id})'.format(id = id, fname = person['first_name'], lname = person['last_name']))
+            ineligible_shoppers.append(f"{person['first_name']} {person['last_name']} ({id})")
 
 attendance = len(breeze_api.list_attendance(instance_id=shoppingevent['id']))
 print('{count} shoppers checked in.'.format(count = attendance))
 
 
-# In[10]:
+# In[11]:
 
 
 # Aggregate multiple orders from the same name.
@@ -284,8 +310,6 @@ def concatenate(ser):
         
 allorders = allorders.groupby('Name', as_index=False).aggregate(concatenate)
 
-pickupchoice = 'Select pickup time'
-
 # allorders = allorders.sort_values(by = 'Pickup Time')
 allorders = allorders.sort_values(by = pickupchoice)
 
@@ -295,7 +319,7 @@ if len(duporderers) > 0:
     print('Duplicate orders received from {people}'.format(people = duporderers))
 
 
-# In[11]:
+# In[12]:
 
 
 # Collect the summary for only refrigerated items. ("page 1")
@@ -323,7 +347,7 @@ summary = allorders[headerFields + refrigFields]
 allorders = allorders.drop(columns = refrigFields)
 
 
-# In[12]:
+# In[13]:
 
 
 # Define HTML templates using Jinja2 for printing the data.
@@ -414,7 +438,7 @@ rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td>
 
 
 
-# In[13]:
+# In[14]:
 
 
 # Format the order forms as html.
@@ -436,7 +460,7 @@ def formatshoppers(date, data):
     return output
 
 
-# In[14]:
+# In[15]:
 
 
 # Templates for the Bulk item picking pages
@@ -458,7 +482,7 @@ bulkcategory = Template('''
 ''')
 
 
-# In[15]:
+# In[16]:
 
 
 # Print out totals or order quantities for refrigerated and frozen items.
@@ -478,7 +502,7 @@ def formatbulkitems(summary):
     return output
 
 
-# In[16]:
+# In[17]:
 
 
 # Build the report using Jinja2.
@@ -514,7 +538,7 @@ output += formatshoppers(title_date, summary)
 orders_html = orders.render({'body': output})
 
 
-# In[17]:
+# In[18]:
 
 
 # Define HTML templates using Jinja2 for printing labels
@@ -577,7 +601,7 @@ shopperlabel = Template('''
 
 
 
-# In[18]:
+# In[19]:
 
 
 # Create labels to be attached to the bags for the orders.
@@ -601,7 +625,7 @@ for _, row in allorders.iterrows():
 labels_html = labels.render({'body': output})
 
 
-# In[19]:
+# In[20]:
 
 
 # Optional: Display the report here.
@@ -609,7 +633,7 @@ labels_html = labels.render({'body': output})
 # IPython.display.HTML(orders_html)
 
 
-# In[20]:
+# In[21]:
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
@@ -644,7 +668,7 @@ def to_pdf(source_html):
     return response.content
 
 
-# In[21]:
+# In[22]:
 
 
 # Write out the files to print.
