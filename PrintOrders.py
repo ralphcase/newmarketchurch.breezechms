@@ -202,7 +202,7 @@ for order in online_orders:
             message('Delivery ordered, but approval could not be checked since the order was not connected to a person.')
         else:
             profile = breeze_api.get_person_details(person_id=order['person_id'])
-            if not any(d.get('name') == 'Yes' for d in profile['details'][delivery_field]):
+            if not delivery_field in profile['details'] or not any(d.get('name') == 'Yes' for d in profile['details'][delivery_field]):
                 message(f"{profile['first_name']} {profile['last_name']} submitted an order for delivery, but was not approved for delivery.")
                 
     # Include only those that match the time period for this run.
@@ -414,18 +414,22 @@ coversheet = Template('''
 <dd>{{input_file}}</dd>
 <dt>Output File</dt>
 <dd>{{output_file}}</dd>
+{% if dupers|length > 0 %}
 <dt>Multiple Orders received from</dt>
 <dd>
 {% for duper in dupers %}
     {{duper}}</br>
 {% endfor %}
 </dd>
+{% endif %}
+{% if ineligible|length > 0 %}
 <dt>Order form from ineligible shopper. Probably need a valid Shopper Information Form.</dt>
 <dd>
 {% for shopper in ineligible %}
     {{shopper}}</br>
 {% endfor %}
 </dd>
+{% endif %}
 </dl>
 ''')
 
