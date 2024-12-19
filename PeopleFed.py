@@ -3,6 +3,7 @@ import calendar
 from datetime import datetime, timedelta
 from breeze_chms_api import breeze
 import os
+import time
 import tempfile
 from pathlib import Path
 
@@ -18,11 +19,36 @@ breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=conf
 def get_pantry_date():
     current_run = datetime.now()
     return current_run + timedelta(days= 3 - current_run.weekday())
+
+def get_pantry_dates(start_date, end_date): 
+    # Convert string dates to datetime objects 
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, '%m/%d/%Y') 
+    if isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, '%m/%d/%Y') 
+    
+    # Initialize list to hold the Thursdays 
+    thursdays = [] 
+    # Find the first Thursday in the date range 
+    current_date = start_date 
+    while current_date.weekday() != 3: # 3 corresponds to Thursday 
+        current_date += timedelta(days=1) # Add all Thursdays to the list 
+    
+    while current_date <= end_date: 
+        thursdays.append(current_date) 
+        current_date += timedelta(days=7) 
+        
+    return thursdays
  
 def get_pantry_dates_this_month(onedate):
-    cal = calendar.Calendar()
-    thursdays = [day for day in cal.itermonthdays2(onedate.year, onedate.month) if day[0] != 0 and day[1] == calendar.THURSDAY]
-    return [datetime(onedate.year, onedate.month, day[0]).date() for day in thursdays]
+    last_day_of_month = calendar.monthrange(onedate.year, onedate.month)[1]
+    return get_pantry_dates(onedate.replace(day=1), onedate.replace(day=last_day_of_month)) 
+ 
+# def get_pantry_dates_this_year(onedate):
+#     cal = calendar.Calendar()
+#     thursdays = [day for day in cal.itermonthdays2(onedate.year, 1) if day[0] != 0 and day[1] == calendar.THURSDAY]
+#     print(thursdays)
+#     return [datetime(onedate.year, onedate.month, day[0]).date() for day in thursdays]
 
 def fetch_event_attendance(pantry_datetime):
     pantry_date = pantry_datetime.strftime('%m/%d/%Y')
@@ -55,6 +81,8 @@ def get_city_and_families(attendance):
     result = {}
 
     for person, data in attendance.items():
+        time.sleep(3.5)  # Recommended delay by Breeze API - See https://support.breezechms.com/hc/en-us/articles/360001324153-API-Advanced-Custom-Development
+            
         profile = breeze_api.get_person_details(person_id=person)
         data['City'] = clean(profile['details']['589696826'][0]['city'])
         
@@ -122,9 +150,12 @@ def main():
 
     pantry_date = get_pantry_date()
     attendance = {}
-    report_dates = get_pantry_dates_this_month(pantry_date)
+    attendance_by_date = {}
+    # report_dates = get_pantry_dates_this_month(pantry_date)
+    report_dates = get_pantry_dates('11/01/2024', '11/30/2024')
     for pantry_date in report_dates:
         clients = fetch_event_attendance(pantry_date)
+        attendance_by_date[pantry_date] = clients
         # print("clients: ", clients)
         for rec in clients:
             if rec['person_id'] in attendance:
@@ -133,10 +164,40 @@ def main():
                 attendance[rec['person_id']] = {}
                 attendance[rec['person_id']]['visits'] = 1
 
-    base_senior_count = 25
-    # print("Attendance: ", attendance)
+        
+    
     people_data = get_city_and_families(attendance)
-    print("Profile data: ", people_data)
+
+    base_senior_count = 25
+    people_fed = []
+    families_fed = []
+    children_fed = []
+    seniors_fed = []
+    for pantry_day, shoppers in attendance_by_date.items():
+        individuals = 0;
+        children = 0;
+        seniors = 0;
+        for person in shoppers:
+            individuals += people_data.at[person['person_id'], '1515006285']
+            children += people_data.at[person['person_id'], '1515006286']
+            seniors += people_data.at[person['person_id'], '1515006288']
+        people_fed.append(individuals)
+        families_fed.append(len(shoppers))
+        children_fed.append(children)
+        seniors_fed.append(seniors)
+
+    trend = pd.DataFrame({'Date': report_dates, 
+                       'People Fed': people_fed, 
+                       'Families Fed': families_fed,
+                       'Seniors Fed': seniors_fed,
+                       # 'Value': [round(p * donatedFoodValue / total_people, 2) for p in people_fed.values()] 
+                          })
+            
+    # print(trend)
+    people_fed_file = os.path.join(local_path, 'trend.csv')
+    trend.to_csv(people_fed_file, index=False)
+    
+    # print("Profile data: \n", people_data)
     summary = summarize(people_data, report_dates)
 
     summary_file = os.path.join(local_path, 'summary.csv')
@@ -147,7 +208,6 @@ def main():
 
     # USDA has requested that we report only counts for Newmarket and Newfields. 
     # The Pantry has decided that any people not from Newfields will be reported as from Newmarket. 
-    # To get the full report, comment out this line.
     people_data.loc[people_data['City'] != 'Newfields', 'City'] = 'Newmarket'
     summary = summarize(people_data, report_dates)
     pd.DataFrame(summary).to_csv(usda_file, index=False)
