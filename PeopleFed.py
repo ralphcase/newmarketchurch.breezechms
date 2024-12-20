@@ -92,15 +92,16 @@ def get_city_and_families(attendance):
                     data[fkey] = int(profile['details'][fkey])
                     total_people[fkey] += data['visits'] * data[fkey] 
                 else:
-                    data[fkey] = 0;
+                    data[fkey] = int(0);
             except:
                 print(f"Missing Food Pantry Shopper Details, {people_keys[fkey]} for {profile['id']}: {profile['first_name']} {profile['last_name']}")
+                data[fkey] = int(0);
 
         # print(person, data)
         if data['1515006285'] == 0:
             print(f"Missing 'Total in House' for {person}.")
-        # if data['1515006285'] != data['1515006286'] + data['1515006287'] + data['1515006288']:
-        #     print(f"Age breakdowns do not add up to total for {person}.")
+        if data['1515006285'] != data['1515006286'] + data['1515006287'] + data['1515006288']:
+            print(f"Age breakdowns do not add up to total for {person}.")
         result[person] = data
     return pd.DataFrame.from_dict(result, orient='index')
 
@@ -173,22 +174,30 @@ def main():
     families_fed = []
     children_fed = []
     seniors_fed = []
+    # print(people_data)
     for pantry_day, shoppers in attendance_by_date.items():
         individuals = 0;
         children = 0;
         seniors = 0;
         for person in shoppers:
+            # print(person['person_id'], people_data.loc[person['person_id']])
+            # print(people_data.at[person['person_id'], '1515006285'])
+            # print(people_data.at[person['person_id'], '1515006286'])
+            # print(people_data.at[person['person_id'], '1515006288'])
             individuals += people_data.at[person['person_id'], '1515006285']
             children += people_data.at[person['person_id'], '1515006286']
             seniors += people_data.at[person['person_id'], '1515006288']
+        print(pantry_day, individuals, children, seniors)
         people_fed.append(individuals)
         families_fed.append(len(shoppers))
         children_fed.append(children)
         seniors_fed.append(seniors)
 
+    print(people_fed, families_fed, children_fed, seniors_fed)    
     trend = pd.DataFrame({'Date': report_dates, 
                        'People Fed': people_fed, 
                        'Families Fed': families_fed,
+                       'Children Fed': children_fed,
                        'Seniors Fed': seniors_fed,
                        # 'Value': [round(p * donatedFoodValue / total_people, 2) for p in people_fed.values()] 
                           })
@@ -196,7 +205,8 @@ def main():
     # print(trend)
     people_fed_file = os.path.join(local_path, 'trend.csv')
     trend.to_csv(people_fed_file, index=False)
-    
+    print('Wrote {file}'.format(file = people_fed_file))
+
     # print("Profile data: \n", people_data)
     summary = summarize(people_data, report_dates)
 
