@@ -69,13 +69,17 @@ def get_city_and_families(attendance):
     result = {}
 
     for person, data in attendance.items():
-        time.sleep(3.5)  # Recommended delay by Breeze API
+        time.sleep(3.5)  # Recommended delay by Breeze API- See https://support.breezechms.com/hc/en-us/articles/360001324153-API-Advanced-Custom-Development
         profile = breeze_api.get_person_details(person_id=person)
         data['City'] = clean(profile['details']['589696826'][0]['city'])
         
         for fkey in total_people:
-            data[fkey] = int(profile['details'].get(fkey, 0))
-            total_people[fkey] += data['visits'] * data[fkey]
+            try:
+                data[fkey] = int(profile['details'].get(fkey, 0))
+                total_people[fkey] += data['visits'] * data[fkey]
+            except:
+                print(f"Missing Food Pantry Shopper Details, {people_keys[fkey]} for {profile['id']}: {profile['first_name']} {profile['last_name']}")
+                data[fkey] = int(0);
         
         if data['1515006285'] == 0:
             print(f"Missing 'Total in House' for {person}.")
@@ -113,11 +117,13 @@ def summarize(report, weeks_reported):
         return row
 
     summary = []
-    
+
+    # Calculate rows for each town.
     for town in report['City'].unique():
         filtered = report.loc[report['City'] == town]
         summary.append(calculate_row(filtered, town))
 
+    # Calculate totals
     summary.append(calculate_row(report))
 
     return summary
@@ -130,7 +136,8 @@ def main():
     pantry_date = get_pantry_date()
     attendance = {}
     attendance_by_date = {}
-    
+
+    # report_dates = get_pantry_dates_this_month(pantry_date)
     report_dates = get_pantry_dates('12/19/2024', '12/19/2024')
     for pantry_date in report_dates:
         clients = fetch_event_attendance(pantry_date)
@@ -176,14 +183,17 @@ def main():
     print(f'Wrote {people_fed_file}')
 
     summary = summarize(people_data, report_dates)
+    
     summary_file = os.path.join(local_path, 'summary.csv')
-    usda_file = os.path.join(local_path, 'USDA_summary.csv')
-
+    
     pd.DataFrame(summary).to_csv(summary_file, index=False)
     print(f'Wrote {summary_file}')
 
+    # USDA has requested that we report only counts for Newmarket and Newfields. 
+    # The Pantry has decided that any people not from Newfields will be reported as from Newmarket. 
     people_data.loc[people_data['City'] != 'Newfields', 'City'] = 'Newmarket'
     summary = summarize(people_data, report_dates)
+    usda_file = os.path.join(local_path, 'USDA_summary.csv')
     pd.DataFrame(summary).to_csv(usda_file, index=False)
     print(f'Wrote {usda_file}')
     print(pd.DataFrame(summary))
