@@ -153,7 +153,7 @@ def main():
     attendance = {}
     attendance_by_date = {}
     # report_dates = get_pantry_dates_this_month(pantry_date)
-    report_dates = get_pantry_dates('11/01/2024', '11/30/2024')
+    report_dates = get_pantry_dates('12/19/2024', '12/19/2024')
     for pantry_date in report_dates:
         clients = fetch_event_attendance(pantry_date)
         attendance_by_date[pantry_date] = clients
@@ -164,8 +164,6 @@ def main():
             else:
                 attendance[rec['person_id']] = {}
                 attendance[rec['person_id']]['visits'] = 1
-
-        
     
     people_data = get_city_and_families(attendance)
 
@@ -174,26 +172,21 @@ def main():
     families_fed = []
     children_fed = []
     seniors_fed = []
-    # print(people_data)
     for pantry_day, shoppers in attendance_by_date.items():
-        individuals = 0;
+        individuals = base_senior_count;
         children = 0;
-        seniors = 0;
+        seniors = base_senior_count;
         for person in shoppers:
-            # print(person['person_id'], people_data.loc[person['person_id']])
-            # print(people_data.at[person['person_id'], '1515006285'])
-            # print(people_data.at[person['person_id'], '1515006286'])
-            # print(people_data.at[person['person_id'], '1515006288'])
             individuals += people_data.at[person['person_id'], '1515006285']
             children += people_data.at[person['person_id'], '1515006286']
             seniors += people_data.at[person['person_id'], '1515006288']
-        print(pantry_day, individuals, children, seniors)
+        # print(pantry_day, individuals, children, seniors)
         people_fed.append(individuals)
         families_fed.append(len(shoppers))
         children_fed.append(children)
         seniors_fed.append(seniors)
 
-    print(people_fed, families_fed, children_fed, seniors_fed)    
+    # print(people_fed, families_fed, children_fed, seniors_fed)    
     trend = pd.DataFrame({'Date': report_dates, 
                        'People Fed': people_fed, 
                        'Families Fed': families_fed,
@@ -202,12 +195,10 @@ def main():
                        # 'Value': [round(p * donatedFoodValue / total_people, 2) for p in people_fed.values()] 
                           })
             
-    # print(trend)
     people_fed_file = os.path.join(local_path, 'trend.csv')
     trend.to_csv(people_fed_file, index=False)
     print('Wrote {file}'.format(file = people_fed_file))
 
-    # print("Profile data: \n", people_data)
     summary = summarize(people_data, report_dates)
 
     summary_file = os.path.join(local_path, 'summary.csv')
