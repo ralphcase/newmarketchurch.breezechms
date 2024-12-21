@@ -11,6 +11,10 @@ import pandas as pd
 # Initialize Breeze API
 breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=config.breeze_api_key)
 
+donatedFoodPounds  = 150244    # From https://docs.google.com/spreadsheets/d/1lMoOrWVFC-Z0FnySEQQiuVBi2IzmAyDnhZhCCsuiYnU/edit?usp=sharing
+donatedFoodValue = 1.93 * donatedFoodPounds
+
+
 def get_pantry_date():
     current_run = datetime.now()
     return current_run + timedelta(days=3 - current_run.weekday())
@@ -51,18 +55,11 @@ def clean(word):
         return 'Unknown'
     return word.strip().title()
 
-total_people = {
-    '1515006285': 0,  # Family size
-    '1515006286': 0,  # Children
-    '1515006287': 0,  # Adults
-    '1515006288': 0,  # Seniors
-}
-
-people_keys = {
-    '1515006285': 'Family Size',
-    '1515006286': 'Children',
-    '1515006287': 'Adults',
-    '1515006288': 'Seniors',
+people_info = {
+    'Family Size' : {'count': 0, 'key': '1515006285'},
+    'Children' :    {'count': 0, 'key': '1515006286'},
+    'Adults' :      {'count': 0, 'key': '1515006287'},
+    'Seniors' :     {'count': 0, 'key': '1515006288'}, 
 }
 
 def get_city_and_families(attendance):
@@ -72,18 +69,18 @@ def get_city_and_families(attendance):
         time.sleep(3.5)  # Recommended delay by Breeze API- See https://support.breezechms.com/hc/en-us/articles/360001324153-API-Advanced-Custom-Development
         profile = breeze_api.get_person_details(person_id=person)
         data['City'] = clean(profile['details']['589696826'][0]['city'])
-        
-        for fkey in total_people:
+
+        for key, info in people_info.items(): 
             try:
-                data[fkey] = int(profile['details'].get(fkey, 0))
-                total_people[fkey] += data['visits'] * data[fkey]
+                data[key] = int(profile['details'].get(info['key'], 0)) 
+                info['count'] += data['visits'] * data[key]
             except:
-                print(f"Missing Food Pantry Shopper Details, {people_keys[fkey]} for {profile['id']}: {profile['first_name']} {profile['last_name']}")
-                data[fkey] = int(0);
+                print(f"Missing Food Pantry Shopper Details, {key} for {profile['id']}: {profile['first_name']} {profile['last_name']}")
+                data[key] = int(0);
         
-        if data['1515006285'] == 0:
+        if data['Family Size'] == 0:
             print(f"Missing 'Total in House' for {person}.")
-        if data['1515006285'] != data['1515006286'] + data['1515006287'] + data['1515006288']:
+        if data['Family Size'] != data['Children'] + data['Adults'] + data['Seniors']:
             print(f"Age breakdowns do not add up to total for {person}.")
         
         result[person] = data
@@ -106,10 +103,10 @@ def summarize(report, weeks_reported):
         row = {
             'Town': town or 'TOTAL',
             'Households': len(filtered_data),
-            'Individuals': (filtered_data['1515006285'] * filtered_data['visits']).sum(),
-            'Meals': MealsPerWeek * (filtered_data['1515006285'] * filtered_data['visits']).sum(),
-            'Over 60': (filtered_data['1515006288'] * filtered_data['visits']).sum(),
-            'Children': (filtered_data['1515006286'] * filtered_data['visits']).sum()
+            'Individuals': (filtered_data['Family Size'] * filtered_data['visits']).sum(),
+            'Meals': MealsPerWeek * (filtered_data['Family Size'] * filtered_data['visits']).sum(),
+            'Over 60': (filtered_data['Seniors'] * filtered_data['visits']).sum(),
+            'Children': (filtered_data['Children'] * filtered_data['visits']).sum()
         }
         if town == 'Newmarket' or town is None:
             for key, value in SeniorCenter.items():
@@ -128,28 +125,8 @@ def summarize(report, weeks_reported):
 
     return summary
 
-def main():
-    local_path = os.path.normpath(os.path.expanduser('~/Desktop'))
-    if not os.path.exists(local_path):
-        local_path = tempfile.gettempdir()
 
-    pantry_date = get_pantry_date()
-    attendance = {}
-    attendance_by_date = {}
-
-    # report_dates = get_pantry_dates_this_month(pantry_date)
-    report_dates = get_pantry_dates('12/19/2024', '12/19/2024')
-    for pantry_date in report_dates:
-        clients = fetch_event_attendance(pantry_date)
-        attendance_by_date[pantry_date] = clients
-        for rec in clients:
-            if rec['person_id'] in attendance:
-                attendance[rec['person_id']]['visits'] += 1
-            else:
-                attendance[rec['person_id']] = {'visits': 1}
-    
-    people_data = get_city_and_families(attendance)
-
+def get_trend(attendance_by_date, people_data, report_dates):
     base_senior_count = 25
     people_fed = []
     families_fed = []
@@ -161,23 +138,49 @@ def main():
         children = 0
         seniors = base_senior_count
         for person in shoppers:
-            individuals += people_data.at[person['person_id'], '1515006285']
-            children += people_data.at[person['person_id'], '1515006286']
-            seniors += people_data.at[person['person_id'], '1515006288']
+            individuals += people_data.at[person['person_id'], 'Family Size']
+            children += people_data.at[person['person_id'], 'Children']
+            seniors += people_data.at[person['person_id'], 'Seniors']
         
         people_fed.append(individuals)
         families_fed.append(len(shoppers))
         children_fed.append(children)
         seniors_fed.append(seniors)
 
-    trend = pd.DataFrame({
+    return pd.DataFrame({
         'Date': report_dates,
         'People Fed': people_fed,
         'Families Fed': families_fed,
         'Children Fed': children_fed,
-        'Seniors Fed': seniors_fed
+        'Seniors Fed': seniors_fed,
+        'Value': [round(p * donatedFoodValue / sum(people_fed), 2) for p in people_fed] 
     })
+
+
+def main():
+    local_path = os.path.normpath(os.path.expanduser('~/Desktop'))
+    if not os.path.exists(local_path):
+        local_path = tempfile.gettempdir()
+
+    pantry_date = get_pantry_date()
+    attendance = {}
+    attendance_by_date = {}
+
+    # report_dates = get_pantry_dates_this_month(pantry_date)
+    report_dates = get_pantry_dates('12/1/2024', '12/31/2024')
+    for pantry_date in report_dates:
+        clients = fetch_event_attendance(pantry_date)
+        attendance_by_date[pantry_date] = clients
+        for rec in clients:
+            if rec['person_id'] in attendance:
+                attendance[rec['person_id']]['visits'] += 1
+            else:
+                attendance[rec['person_id']] = {'visits': 1}
     
+    people_data = get_city_and_families(attendance)
+      
+    trend = get_trend(attendance_by_date, people_data, report_dates)
+      
     people_fed_file = os.path.join(local_path, 'trend.csv')
     trend.to_csv(people_fed_file, index=False)
     print(f'Wrote {people_fed_file}')
