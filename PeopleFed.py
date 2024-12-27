@@ -1,6 +1,7 @@
 import config
 import calendar
 import logging
+import argparse
 from datetime import datetime, timedelta
 from breeze_chms_api import breeze
 import os
@@ -63,6 +64,7 @@ def get_pantry_dates(start_date, end_date):
 
 def get_pantry_dates_this_month(onedate):
     """Get all pantry dates for the current month."""
+    onedate = convert_to_datetime(onedate)
     last_day_of_month = calendar.monthrange(onedate.year, onedate.month)[1]
     return get_pantry_dates(onedate.replace(day=1), onedate.replace(day=last_day_of_month))
 
@@ -198,20 +200,27 @@ def write_file(data, filename):
 
 
 def main():
-    pantry_date = get_pantry_date()
+    # Create the argument parser 
+    parser = argparse.ArgumentParser(description="A simple command line argument parser for the report dates") 
+    # Add arguments 
+    parser.add_argument('-f', '--from_date', type=str, help='Start date of the report') 
+    parser.add_argument('-t', '--to_date', type=str, help='End date of the report') 
+    # Parse the arguments 
+    args = parser.parse_args()
+    
+    end_date = args.to_date or get_pantry_date()
+
+    report_dates = get_pantry_dates(args.from_date, end_date) if args.from_date else get_pantry_dates_this_month(end_date)
+    
     attendance = {}
     attendance_by_date = {}
 
-    # report_dates = get_pantry_dates_this_month(pantry_date)
-    report_dates = get_pantry_dates('9/1/2024', '12/31/2024')
     for pantry_date in report_dates:
+        print(pantry_date)
         clients = fetch_event_attendance(pantry_date)
         attendance_by_date[pantry_date] = clients
         for rec in clients:
-            if rec['person_id'] in attendance:
-                attendance[rec['person_id']]['visits'] += 1
-            else:
-                attendance[rec['person_id']] = {'visits': 1}
+            attendance[rec['person_id']] = {'visits': attendance.get(rec['person_id'], {'visits': 0})['visits'] + 1}
     
     people_data = get_city_and_families(attendance)
       
