@@ -215,31 +215,29 @@ def main():
     attendance = {}
     attendance_by_date = {}
 
+    # Collect the Attendance for each pantry date in the report.
     for pantry_date in report_dates:
-        print(pantry_date)
         clients = fetch_event_attendance(pantry_date)
         attendance_by_date[pantry_date] = clients
         for rec in clients:
             attendance[rec['person_id']] = {'visits': attendance.get(rec['person_id'], {'visits': 0})['visits'] + 1}
-    
+
+    # Add in the additional data needed for each attendee.
     people_data = get_city_and_families(attendance)
       
-    trend = get_trend(attendance_by_date, people_data, report_dates)
-      
+    trend = get_trend(attendance_by_date, people_data, report_dates)   
     write_file(trend, 'trend.csv')
 
     summary = summarize(people_data, report_dates)
-    
     write_file(pd.DataFrame(summary), 'summary.csv')
 
     # USDA has requested that we report only counts for Newmarket and Newfields. 
     # The Pantry has decided that any people not from Newfields will be reported as from Newmarket. 
     people_data.loc[people_data['City'] != 'Newfields', 'City'] = 'Newmarket'
     summary = summarize(people_data, report_dates)
-    
     write_file(pd.DataFrame(summary), 'USDA_summary.csv')
-    
     print(pd.DataFrame(summary))
+
 
 if __name__ == "__main__":
     main()
