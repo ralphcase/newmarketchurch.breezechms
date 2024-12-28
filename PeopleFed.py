@@ -18,7 +18,7 @@ breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=conf
 
 # Configuration 
 donated_food_pounds = 150244 # From https://docs.google.com/spreadsheets/d/1lMoOrWVFC-Z0FnySEQQiuVBi2IzmAyDnhZhCCsuiYnU/edit?usp=sharing 
-donated_food_value = 1.93 * donated_food_pounds 
+donated_food_value_per_pound = 1.93 # From the NH Food Bank
 category_id = 55532 
 sunrise_center_count = 25
 meals_per_week = 15 
@@ -34,21 +34,21 @@ people_info = {
 
 def get_pantry_date(): 
     """Get the pantry date based on the current date.""" 
-    current_run = datetime.now() 
+    current_run = datetime.now().date()
     return current_run + timedelta(days=3 - current_run.weekday())
     
 
-def convert_to_datetime(date):
-    """Convert string date to datetime object if necessary."""
+def convert_to_date(date):
+    """Convert string date to date object if necessary."""
     if isinstance(date, str):
-        return datetime.strptime(date, '%m/%d/%Y')
+        return date.strptime(date, '%m/%d/%Y')
     return date
 
 
 def get_pantry_dates(start_date, end_date):
     """Get all Thursdays within the given date range."""
-    start_date = convert_to_datetime(start_date)
-    end_date = convert_to_datetime(end_date)
+    start_date = convert_to_date(start_date)
+    end_date = convert_to_date(end_date)
     
     thursdays = []
     current_date = start_date
@@ -64,7 +64,7 @@ def get_pantry_dates(start_date, end_date):
 
 def get_pantry_dates_this_month(onedate):
     """Get all pantry dates for the current month."""
-    onedate = convert_to_datetime(onedate)
+    onedate = convert_to_date(onedate)
     last_day_of_month = calendar.monthrange(onedate.year, onedate.month)[1]
     return get_pantry_dates(onedate.replace(day=1), onedate.replace(day=last_day_of_month))
 
@@ -141,8 +141,7 @@ def summarize(report, weeks_reported):
 
     # Calculate rows for each town.
     for town in report['City'].unique():
-        filtered = report.loc[report['City'] == town]
-        summary.append(calculate_row(filtered, town))
+        summary.append(calculate_row(report.loc[report['City'] == town], town))
 
     # Calculate totals
     summary.append(calculate_row(report))
@@ -150,7 +149,7 @@ def summarize(report, weeks_reported):
     return summary
 
 
-def get_trend(attendance_by_date, people_data, report_dates):
+def get_trend(attendance_by_date, people_data, report_dates, donated_food_value=0):
     """Get trend data from attendance by date."""
     people_fed = []
     families_fed = []
@@ -205,12 +204,18 @@ def main():
     # Add arguments 
     parser.add_argument('-f', '--from_date', type=str, help='Start date of the report') 
     parser.add_argument('-t', '--to_date', type=str, help='End date of the report') 
+    parser.add_argument('-d', '--donated', type=str, help='Donated food for the report period (in pounds)') 
     # Parse the arguments 
     args = parser.parse_args()
     
     end_date = args.to_date or get_pantry_date()
 
     report_dates = get_pantry_dates(args.from_date, end_date) if args.from_date else get_pantry_dates_this_month(end_date)
+    print("Building People Fed reports for:")
+    for date in report_dates:
+        print(date.strftime("%m/%d/%Y"))
+
+    donated_food = args.donated or donated_food_pounds
     
     attendance = {}
     attendance_by_date = {}
@@ -225,7 +230,8 @@ def main():
     # Add in the additional data needed for each attendee.
     people_data = get_city_and_families(attendance)
       
-    trend = get_trend(attendance_by_date, people_data, report_dates)   
+    trend = get_trend(attendance_by_date, people_data, report_dates, donated_food_value_per_pound * donated_food)   
+    print(trend)
     write_file(trend, 'trend.csv')
 
     summary = summarize(people_data, report_dates)
