@@ -41,7 +41,7 @@ def get_pantry_date():
 def convert_to_date(date):
     """Convert string date to date object if necessary."""
     if isinstance(date, str):
-        return date.strptime(date, '%m/%d/%Y')
+        return datetime.strptime(date, '%m/%d/%Y')
     return date
 
 
@@ -112,6 +112,21 @@ def get_city_and_families(attendance):
     return pd.DataFrame.from_dict(result, orient='index')
 
 
+def add_seniors(people_data):
+    for i in range(sunrise_center_count):
+        new_row = {
+                'visits': people_data['visits'].max(), 
+                'City':'Newmarket', 
+                'Family Size':1, 
+                'Children':0, 
+                'Adults':0, 
+                'Seniors':1
+        }
+        people_data = pd.concat([people_data, pd.DataFrame([new_row])], ignore_index = False)
+          
+    return people_data
+
+    
 def summarize(report, weeks_reported):
     """Summarize data by town."""
     num_weeks = len(weeks_reported)
@@ -132,9 +147,6 @@ def summarize(report, weeks_reported):
             'Over 60': (filtered_data['Seniors'] * filtered_data['visits']).sum(),
             'Children': (filtered_data['Children'] * filtered_data['visits']).sum()
         }
-        if town == 'Newmarket' or town is None:
-            for key, value in SeniorCenter.items():
-                row[key] += value
         return row
 
     summary = []
@@ -158,20 +170,23 @@ def get_trend(attendance_by_date, people_data, report_dates, donated_food_value=
     
     for pantry_day, shoppers in attendance_by_date.items():
         individuals = 0
+        families = 0
         seniors = 0
         children = 0
         if len(shoppers) > 20:
             # If there were only a few shoppers, assume the pantry was closed and there was no distribution at the Sunrise Center.
             individuals += sunrise_center_count
+            families += sunrise_center_count
             seniors += sunrise_center_count
         
         for person in shoppers:
             individuals += people_data.at[person['person_id'], 'Family Size']
+            families += 1
             children += people_data.at[person['person_id'], 'Children']
             seniors += people_data.at[person['person_id'], 'Seniors']
         
         people_fed.append(individuals)
-        families_fed.append(len(shoppers))
+        families_fed.append(families)
         children_fed.append(children)
         seniors_fed.append(seniors)
 
@@ -208,9 +223,9 @@ def main():
     # Parse the arguments 
     args = parser.parse_args()
     
-    end_date = args.to_date or get_pantry_date()
+    end_date = convert_to_date(args.to_date or get_pantry_date())
 
-    report_dates = get_pantry_dates(args.from_date, end_date) if args.from_date else get_pantry_dates_this_month(end_date)
+    report_dates = get_pantry_dates(args.from_date, end_date) if args.from_date else get_pantry_dates(end_date.replace(day=1), end_date)
     print("Building People Fed reports for:")
     for date in report_dates:
         print(date.strftime("%m/%d/%Y"))
@@ -229,9 +244,10 @@ def main():
 
     # Add in the additional data needed for each attendee.
     people_data = get_city_and_families(attendance)
+
+    people_data = add_seniors(people_data)
       
     trend = get_trend(attendance_by_date, people_data, report_dates, donated_food_value_per_pound * donated_food)   
-    print(trend)
     write_file(trend, 'trend.csv')
 
     summary = summarize(people_data, report_dates)
