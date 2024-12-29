@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=config.breeze_api_key)
 
 # Configuration 
-donated_food_pounds = 150244 # From https://docs.google.com/spreadsheets/d/1lMoOrWVFC-Z0FnySEQQiuVBi2IzmAyDnhZhCCsuiYnU/edit?usp=sharing 
+donated_food_pounds = 0 # From https://docs.google.com/spreadsheets/d/1lMoOrWVFC-Z0FnySEQQiuVBi2IzmAyDnhZhCCsuiYnU/edit?usp=sharing 
 donated_food_value_per_pound = 1.93 # From the NH Food Bank
 category_id = 55532 
 sunrise_center_count = 25
@@ -217,8 +217,8 @@ def main():
     # Create the argument parser 
     parser = argparse.ArgumentParser(description="A simple command line argument parser for the report dates") 
     # Add arguments 
-    parser.add_argument('-f', '--from_date', type=str, help='Start date of the report') 
-    parser.add_argument('-t', '--to_date', type=str, help='End date of the report') 
+    parser.add_argument('-f', '--from_date', type=str, help='Start date of the report. If omitted, the default is the first day of the month of the to_date.') 
+    parser.add_argument('-t', '--to_date', type=str, help='End date of the report. If omitted, the default is the current date.') 
     parser.add_argument('-d', '--donated', type=str, help='Donated food for the report period (in pounds)') 
     # Parse the arguments 
     args = parser.parse_args()
