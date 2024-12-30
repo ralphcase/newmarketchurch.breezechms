@@ -9,6 +9,7 @@ import time
 import tempfile
 from pathlib import Path
 import pandas as pd
+from typing import Union, List
 
 # Initialize logging 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,11 +18,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=config.breeze_api_key)
 
 # Configuration 
-donated_food_pounds = 0 # From https://docs.google.com/spreadsheets/d/1lMoOrWVFC-Z0FnySEQQiuVBi2IzmAyDnhZhCCsuiYnU/edit?usp=sharing 
-donated_food_value_per_pound = 1.93 # From the NH Food Bank
-category_id = 55532 
-sunrise_center_count = 25
-meals_per_week = 15 
+DONATED_FOOD_POUNDS = 0 # From https://docs.google.com/spreadsheets/d/1lMoOrWVFC-Z0FnySEQQiuVBi2IzmAyDnhZhCCsuiYnU/edit?usp=sharing 
+DONATED_FOOD_VALUE_PER_POUND = 1.93 # From the NH Food Bank
+PANTRY_CALENDAR = 55532 # The id of the Food Pantry Calendar in Breeze
+SUNRISE_CENTER_COUNT = 25
+MEALS_PER_WEEK = 15 
 
 people_info = {
     # The keys are the Breeze keys for the profile fields.
@@ -32,20 +33,20 @@ people_info = {
 }
 
 
-def get_pantry_date(): 
+def get_pantry_date() -> datetime: 
     """Get the pantry date based on the current date.""" 
     current_run = datetime.now().date()
     return current_run + timedelta(days=3 - current_run.weekday())
     
 
-def convert_to_date(date):
+def convert_to_date(date: Union[str, datetime]) -> datetime:
     """Convert string date to date object if necessary."""
     if isinstance(date, str):
         return datetime.strptime(date, '%m/%d/%Y')
     return date
 
 
-def get_pantry_dates(start_date, end_date):
+def get_pantry_dates(start_date: Union[str, datetime], end_date: Union[str, datetime]) -> List[datetime]:
     """Get all Thursdays within the given date range."""
     start_date = convert_to_date(start_date)
     end_date = convert_to_date(end_date)
@@ -62,30 +63,23 @@ def get_pantry_dates(start_date, end_date):
     return thursdays
 
 
-def get_pantry_dates_this_month(onedate):
-    """Get all pantry dates for the current month."""
-    onedate = convert_to_date(onedate)
-    last_day_of_month = calendar.monthrange(onedate.year, onedate.month)[1]
-    return get_pantry_dates(onedate.replace(day=1), onedate.replace(day=last_day_of_month))
-
-
-def fetch_event_attendance(pantry_datetime):
+def fetch_event_attendance(pantry_datetime: datetime) -> list:
     """Fetch event attendance for a given pantry date."""
     pantry_date = pantry_datetime.strftime('%m/%d/%Y')
-    events = breeze_api.list_events(start=pantry_date, end=pantry_date, category_id=55532, details=0)
+    events = breeze_api.list_events(start=pantry_date, end=pantry_date, category_id=PANTRY_CALENDAR, details=0)
     if not events:
         raise ValueError(f"No events found on {pantry_date}")
     return breeze_api.list_attendance(instance_id=events[0]['id'])
 
 
-def clean(word):
+def clean(word: Union[int, str]) -> str:
     """Clean and format a word."""
     if word == 0:
         return 'Unknown'
     return word.strip().title()
 
 
-def get_city_and_families(attendance):
+def get_city_and_families(attendance: dict) -> pd.DataFrame:
     """Get city and family details from attendance."""
     result = {}
 
@@ -112,56 +106,50 @@ def get_city_and_families(attendance):
     return pd.DataFrame.from_dict(result, orient='index')
 
 
-def add_seniors(people_data):
-    for i in range(sunrise_center_count):
-        new_row = {
-                'visits': people_data['visits'].max(), 
-                'City':'Newmarket', 
-                'Family Size':1, 
-                'Children':0, 
-                'Adults':0, 
-                'Seniors':1
-        }
-        people_data = pd.concat([people_data, pd.DataFrame([new_row])], ignore_index = False)
-          
-    return people_data
-
+def add_seniors(people_data: pd.DataFrame) -> pd.DataFrame:
+    new_rows = [{ 
+        'visits': people_data['visits'].max(), 
+        'City': 'Newmarket', 
+        'Family Size': 1, 
+        'Children': 0, 
+        'Adults': 0, 
+        'Seniors': 1 
+    } for _ in range(SUNRISE_CENTER_COUNT)]
+    return pd.concat([people_data, pd.DataFrame(new_rows)], ignore_index=False)
     
-def summarize(report, weeks_reported):
+    
+def summarize(report: pd.DataFrame, weeks_reported: List[datetime]) -> List[dict]:
     """Summarize data by town."""
     num_weeks = len(weeks_reported)
     
     SeniorCenter = {
-        'Households': sunrise_center_count,
-        'Individuals': sunrise_center_count * num_weeks,
-        'Meals': meals_per_week * sunrise_center_count * num_weeks,
-        'Over 60': sunrise_center_count * num_weeks
+        'Households': SUNRISE_CENTER_COUNT,
+        'Individuals': SUNRISE_CENTER_COUNT * num_weeks,
+        'Meals': MEALS_PER_WEEK * SUNRISE_CENTER_COUNT * num_weeks,
+        'Over 60': SUNRISE_CENTER_COUNT * num_weeks
     }
 
-    def calculate_row(filtered_data, town=None):
+    def calculate_row(filtered_data: pd.DataFrame, town: str = None) -> dict:
         row = {
             'Town': town or 'TOTAL',
             'Households': len(filtered_data),
             'Individuals': (filtered_data['Family Size'] * filtered_data['visits']).sum(),
-            'Meals': meals_per_week * (filtered_data['Family Size'] * filtered_data['visits']).sum(),
+            'Meals': MEALS_PER_WEEK * (filtered_data['Family Size'] * filtered_data['visits']).sum(),
             'Over 60': (filtered_data['Seniors'] * filtered_data['visits']).sum(),
             'Children': (filtered_data['Children'] * filtered_data['visits']).sum()
         }
         return row
 
-    summary = []
-
     # Calculate rows for each town.
-    for town in report['City'].unique():
-        summary.append(calculate_row(report.loc[report['City'] == town], town))
-
+    summary = [calculate_row(report.loc[report['City'] == town], town) for town in report['City'].unique()]
+    
     # Calculate totals
     summary.append(calculate_row(report))
 
     return summary
 
 
-def get_trend(attendance_by_date, people_data, report_dates, donated_food_value=0):
+def get_trend(attendance_by_date: dict, people_data: pd.DataFrame, report_dates: List[datetime], donated_food_value: float = 0) -> pd.DataFrame:
     """Get trend data from attendance by date."""
     people_fed = []
     families_fed = []
@@ -169,38 +157,25 @@ def get_trend(attendance_by_date, people_data, report_dates, donated_food_value=
     seniors_fed = []
     
     for pantry_day, shoppers in attendance_by_date.items():
-        individuals = 0
-        families = 0
-        seniors = 0
-        children = 0
-        if len(shoppers) > 20:
-            # If there were only a few shoppers, assume the pantry was closed and there was no distribution at the Sunrise Center.
-            individuals += sunrise_center_count
-            families += sunrise_center_count
-            seniors += sunrise_center_count
         
-        for person in shoppers:
-            individuals += people_data.at[person['person_id'], 'Family Size']
-            families += 1
-            children += people_data.at[person['person_id'], 'Children']
-            seniors += people_data.at[person['person_id'], 'Seniors']
+        # If there were only a few shoppers, assume the pantry was closed and there was no distribution at the Sunrise Center.
+        people_fed.append((SUNRISE_CENTER_COUNT if len(shoppers) > 20 else 0) + sum(people_data.at[person['person_id'], 'Family Size'] for person in shoppers)) 
+        families_fed.append(len(shoppers) + (SUNRISE_CENTER_COUNT if len(shoppers) > 20 else 0))
+        children_fed.append(sum(people_data.at[person['person_id'], 'Children'] for person in shoppers)) 
+        seniors_fed.append((SUNRISE_CENTER_COUNT if len(shoppers) > 20 else 0) + sum(people_data.at[person['person_id'], 'Seniors'] for person in shoppers))
         
-        people_fed.append(individuals)
-        families_fed.append(families)
-        children_fed.append(children)
-        seniors_fed.append(seniors)
-
+    total_people_fed = sum(people_fed)
     return pd.DataFrame({
         'Date': report_dates,
         'People Fed': people_fed,
         'Families Fed': families_fed,
         'Children Fed': children_fed,
         'Seniors Fed': seniors_fed,
-        'Value': [round(p * donated_food_value / sum(people_fed), 2) for p in people_fed] 
+        'Value': [round(p * donated_food_value / total_people_fed, 2) for p in people_fed] 
     })
 
 
-def write_file(data, filename):
+def write_file(data: pd.DataFrame, filename: str):
     """Write a dataframe to a csv file."""
     local_path = os.path.normpath(os.path.expanduser('~/Desktop'))
     if not os.path.exists(local_path):
@@ -230,7 +205,7 @@ def main():
     for date in report_dates:
         print(date.strftime("%m/%d/%Y"))
 
-    donated_food = args.donated or donated_food_pounds
+    donated_food = float(args.donated) if args.donated else DONATED_FOOD_POUNDS
     
     attendance = {}
     attendance_by_date = {}
@@ -247,7 +222,7 @@ def main():
 
     people_data = add_seniors(people_data)
       
-    trend = get_trend(attendance_by_date, people_data, report_dates, donated_food_value_per_pound * donated_food)   
+    trend = get_trend(attendance_by_date, people_data, report_dates, DONATED_FOOD_VALUE_PER_POUND * donated_food)   
     write_file(trend, 'trend.csv')
 
     summary = summarize(people_data, report_dates)
