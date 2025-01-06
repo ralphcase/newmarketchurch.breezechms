@@ -105,7 +105,7 @@ else:
 # We may want to do something to detect when the form changes in ways that will be a problem.
 # form_fields
 
-pickupchoice = 'Select pickup time'
+# pickupchoice = 'Select pickup time'
 
 
 # In[7]:
@@ -197,13 +197,12 @@ for order in online_orders:
                 row[field['name']] = value
 
     # Check if delivery is approved.
-    if 'delivery' in row[pickupchoice].lower():
-        if order['person_id'] is None:
-            message('Delivery ordered, but approval could not be checked since the order was not connected to a person.')
-        else:
-            profile = breeze_api.get_person_details(person_id=order['person_id'])
-            if not delivery_field in profile['details'] or not any(d.get('name') == 'Yes' for d in profile['details'][delivery_field]):
-                message(f"{profile['first_name']} {profile['last_name']} submitted an order for delivery, but was not approved for delivery.")
+    if order['person_id'] is None:
+        message('Delivery ordered, but approval could not be checked since the order was not connected to a person.')
+    else:
+        profile = breeze_api.get_person_details(person_id=order['person_id'])
+        if not delivery_field in profile['details'] or not any(d.get('name') == 'Yes' for d in profile['details'][delivery_field]):
+            message(f"{profile['first_name']} {profile['last_name']} submitted an order for delivery, but was not approved for delivery.")
                 
     # Include only those that match the time period for this run.
     if pd.to_datetime(row['Date']) >= starttime:
@@ -288,6 +287,33 @@ print('{count} shoppers checked in.'.format(count = attendance))
 # In[11]:
 
 
+# Collect the summary for only refrigerated items. ("page 1")
+# Include only the following fields in the Summary.
+
+headerFields = [
+    'Name', 
+    'Number of people in household', 
+    'Address', 
+    'Email', 
+    'Phone', 
+    # 'Anything else we should know? ',
+    'PLEASE LIST ANY ALLERGIES/DIETARY RESTRICTIONS - Just type "n/a" if none.',
+    'Notes for your order (example: low sodium, low sugar, any items you might enjoy.)'
+    # 'Indicate any dietary restrictions (Peanut allergy, low sodium, vegetarian only, etc.)',
+]
+refrigFields = [
+    # 'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
+    'FROZEN ITEMS',
+    'REFRIGERATED ITEMS', 
+    # 'Notes for Fresh and Frozen Items Only. Please use Special Notes section at beginning of order for other requests.',
+]
+summary = allorders[headerFields + refrigFields]
+allorders = allorders.drop(columns = refrigFields)
+
+
+# In[12]:
+
+
 # Aggregate multiple orders from the same name.
 
 duporderers = set()
@@ -310,41 +336,10 @@ def concatenate(ser):
         
 allorders = allorders.groupby('Name', as_index=False).aggregate(concatenate)
 
-# allorders = allorders.sort_values(by = 'Pickup Time')
-allorders = allorders.sort_values(by = pickupchoice)
-
 deduped = len(allorders.index)
 print('{count} orders deduped.'.format(count = deduped))
 if len(duporderers) > 0:
     print('Duplicate orders received from {people}'.format(people = duporderers))
-
-
-# In[12]:
-
-
-# Collect the summary for only refrigerated items. ("page 1")
-# Include only the following fields in the Summary.
-
-headerFields = [
-    'Name', 
-    'Number of people in household', 
-    pickupchoice,
-    'Address', 
-    'Email', 
-    'Phone', 
-    # 'Anything else we should know? ',
-    'PLEASE LIST ANY ALLERGIES/DIETARY RESTRICTIONS - Just type "n/a" if none.',
-    'Notes for your order (example: low sodium, low sugar, any items you might enjoy.)'
-    # 'Indicate any dietary restrictions (Peanut allergy, low sodium, vegetarian only, etc.)',
-]
-refrigFields = [
-    # 'FROZEN PROTEINS - Please select only items you need; every attempt will be made to fill at least 2-3 items per family', 
-    'FROZEN ITEMS',
-    'REFRIGERATED ITEMS', 
-    # 'Notes for Fresh and Frozen Items Only. Please use Special Notes section at beginning of order for other requests.',
-]
-summary = allorders[headerFields + refrigFields]
-allorders = allorders.drop(columns = refrigFields)
 
 
 # In[13]:
@@ -494,14 +489,14 @@ from collections import Counter
 
 def formatbulkitems(summary):
     output = ''
-    for time in set(summary[pickupchoice]):
-        output += bulkheader.render({'title': time})
+    # for time in set(summary[pickupchoice]):
+        # output += bulkheader.render({'title': time})
 
-        for rs in refrigFields:
-            totalitems = []
-            for item in summary.loc[summary[pickupchoice] == time][rs]:
-                totalitems += [it for it in item.split('<br />') if it != '']  
-            output += bulkcategory.render({'category': rs, 'items': Counter(totalitems)})
+    for rs in refrigFields:
+        totalitems = []
+        for item in summary[rs]:
+            totalitems += [it for it in item.split('<br />') if it != '']  
+        output += bulkcategory.render({'category': rs, 'items': Counter(totalitems)})
 
     return output
 
@@ -616,12 +611,10 @@ for po in paper_order_labels:
     output += number_of_labels * shopperlabel.render(po)
 
 for _, row in allorders.iterrows():
-    pickupdelivery = row[pickupchoice]
-    if pickupdelivery == 'Delivery' and 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip().lower() not in ['', 'none']:
-        pickupdelivery += ": " + row['Instructions for Delivery Driver'] 
+    if 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip().lower() not in ['', 'none']:
+        pickupdelivery = row['Instructions for Delivery Driver'] 
     output += number_of_labels * shopperlabel.render({
         'shoppername': row['Name'], 
-        'pickup': pickupdelivery,
         'address': row['Address'], 
         'phone': row['Phone']
     })
