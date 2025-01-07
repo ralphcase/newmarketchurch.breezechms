@@ -105,8 +105,6 @@ else:
 # We may want to do something to detect when the form changes in ways that will be a problem.
 # form_fields
 
-# pickupchoice = 'Select pickup time'
-
 
 # In[7]:
 
@@ -229,7 +227,6 @@ print('{count} orders filtered by date and time.'.format(count = printed))
 
 # Recurring shoppers. These people may not check in, but should be counted when we report on shoppers served.
 recurringshoppers = [
-    '30397442',   # Jay Stillman
     '30908360',   # Julie Walker-Bourbon
     '30396500',   # Britt Gleason
     '30396178',   # Ed Comeau
@@ -237,16 +234,6 @@ recurringshoppers = [
     '30396002',   # Ashley Bowley
 ]
 shopper_ids.extend(recurringshoppers)
-
-# Additional labels that we can't get from the forms.
-paper_order_labels = [
-    {
-        'shoppername': 'Jay Stillman', 
-        'pickup': 'Thursday, 12 - 2pm', 
-        'address': ' ', 
-        'phone': '659-4911'
-    }
-    ]
 
 # Replace "NaN" values with blanks.
 allorders = allorders.replace(np.nan, '')
@@ -489,9 +476,6 @@ from collections import Counter
 
 def formatbulkitems(summary):
     output = ''
-    # for time in set(summary[pickupchoice]):
-        # output += bulkheader.render({'title': time})
-
     for rs in refrigFields:
         totalitems = []
         for item in summary[rs]:
@@ -606,9 +590,6 @@ shopperlabel = Template('''
 # Create labels to be attached to the bags for the orders.
 
 output = ''
-# Manually add people for paper orders.
-for po in paper_order_labels:
-    output += number_of_labels * shopperlabel.render(po)
 
 for _, row in allorders.iterrows():
     if 'Instructions for Delivery Driver' in row and row['Instructions for Delivery Driver'].strip().lower() not in ['', 'none']:
