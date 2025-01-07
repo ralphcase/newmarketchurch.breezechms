@@ -285,7 +285,7 @@ headerFields = [
     'Phone', 
     # 'Anything else we should know? ',
     'PLEASE LIST ANY ALLERGIES/DIETARY RESTRICTIONS - Just type "n/a" if none.',
-    'Notes for your order (example: low sodium, low sugar, any items you might enjoy.)'
+    "Notes for your order (example: low sodium, low sugar, any items you might enjoy that you don't see listed here.)"
     # 'Indicate any dietary restrictions (Peanut allergy, low sodium, vegetarian only, etc.)',
 ]
 refrigFields = [
