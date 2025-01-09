@@ -16,42 +16,54 @@
 # In[1]:
 
 
-import config
-
-# Breeze forms used
-breeze_forms = config.church_domain_url + '/forms/entries/'
-order_form_id = '557986'
-shopper_form_id = '791210'
-
-# Set up Breeze API wrapper
-from breeze_chms_api import breeze
-
-# Initialize API 
-breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=config.breeze_api_key)
+# We may want to do something to detect when the form changes in ways that will be a problem.
+# form_fields
 
 
 # In[2]:
 
 
-# Show links to the needed form entries. 
-# Shoppers don't actually need to be connected to print orders, but they do need 
-# to be connected to be checked in and to run reports.
-print("Make sure new shoppers are connected - " + breeze_forms + shopper_form_id)
-print("Connect orders to people - " + breeze_forms + order_form_id)
+# ## Import Libraries and Initialize API 
+import config 
+from breeze_chms_api import breeze 
+from datetime import datetime, timedelta 
+import os 
+import tempfile 
+from pathlib import Path 
+import sys 
+import numpy as np 
+import pandas as pd 
+from collections import OrderedDict
+from jinja2 import Template
+from collections import Counter
+import requests
+
+# Breeze forms used
+BREEZE_FORMS_URL = config.church_domain_url + '/forms/entries/'
+ORDER_FORM_ID = '557986'
+SHOPPER_FORM_ID = '791210'
+
+# Initialize API 
+breeze_api = breeze.breeze_api(breeze_url=config.church_domain_url, api_key=config.breeze_api_key)
 
 
 # In[3]:
 
 
-from datetime import datetime, timedelta
+# Show links to the needed form entries. 
+# Shoppers don't actually need to be connected to print orders, but they do need 
+# to be connected to be checked in and to run reports.
+print("Make sure new shoppers are connected - " + BREEZE_FORMS_URL + SHOPPER_FORM_ID)
+print("Connect orders to people - " + BREEZE_FORMS_URL + ORDER_FORM_ID)
+
+
+# In[4]:
+
 
 # title_date is the Thursday of this week.
 current_run = datetime.now()
 thursday = current_run + timedelta(days = 3 - current_run.weekday())
 title_date = thursday.strftime('%m/%d/%Y')
-
-# Set this to override the date to a specific data rather than just this week.
-# title_date = '1/28/2024'
 
 runmode = 'weekly'
 # runmode = 'update'
@@ -62,13 +74,10 @@ last_run = '12/06/2023 12:00'
 number_of_labels = 6
 
 
-# In[4]:
+# In[5]:
 
 
 # Get the exported filename for use in the report.
-import os
-import tempfile
-from pathlib import Path
 
 # local_path = Path(os.environ['TEMP'])
 local_path = os.path.normpath(os.path.expanduser('~/Desktop'))
@@ -83,7 +92,7 @@ order_pdf_file = os.path.join(local_path, filename +'.pdf')
 label_pdf_file = os.path.join(local_path, filename +' labels.pdf')
 
 
-# In[5]:
+# In[6]:
 
 
 # Choose the time period for the orders based on the runmode and current time.
@@ -103,13 +112,6 @@ else:
     starttime = datetime.today() - timedelta(days=7)
 
 
-# In[6]:
-
-
-# We may want to do something to detect when the form changes in ways that will be a problem.
-# form_fields
-
-
 # In[7]:
 
 
@@ -126,16 +128,11 @@ def message(m):
 # In[8]:
 
 
-from collections import OrderedDict
-import sys
-import numpy as np
-import pandas as pd
-
 # Build a DataFrame for all the orders. 
 # This code builds the data to look like what's downloaded in an excel file from https://newmarketchurch.breezechms.com/forms/entries/557986.
 
 # Get the order form entries.
-online_orders = breeze_api.list_form_entries(form_id = order_form_id, details=True)
+online_orders = breeze_api.list_form_entries(form_id = ORDER_FORM_ID, details=True)
 # The entry response array has key values that correspond to the form fields.
 if online_orders is None:
     print('No orders were found in Breeze.')
@@ -145,7 +142,7 @@ else:
     print('{count} orders in input.'.format(count = ordercount))
 
 # Get the form fields needed to make sense of the entries.
-form_fields = breeze_api.list_form_fields(form_id = order_form_id)
+form_fields = breeze_api.list_form_fields(form_id = ORDER_FORM_ID)
 
 for profile_field in breeze_api.get_profile_fields():
     if profile_field['name'] == 'Food Pantry Shopper Details':
@@ -343,8 +340,6 @@ if len(duporderers) > 0:
 
 # Define HTML templates using Jinja2 for printing the data.
 
-from jinja2 import Template
-
 # Template for the whole report, including style.
 
 orders = Template('''
@@ -480,7 +475,6 @@ bulkcategory = Template('''
 
 
 # Print out totals or order quantities for refrigerated and frozen items.
-from collections import Counter
 
 def formatbulkitems(summary):
     output = ''
@@ -533,8 +527,6 @@ orders_html = orders.render({'body': output})
 
 
 # Define HTML templates using Jinja2 for printing labels
-
-from jinja2 import Template
 
 # Template for the address labels, including style.
 # Styled to fit Avery 8163 (2" x 4") labels. https://www.avery.com/help/article/avery-labels-2-inch-x-4-inch
@@ -623,7 +615,6 @@ labels_html = labels.render({'body': output})
 
 
 # Use Rapid API yakpdf - HTML to PDF to format the html output as pdf for printing.
-import requests
 
 def to_pdf(source_html):
     # Using https://rapidapi.com/yakpdf-yakpdf/api/yakpdf with limited free license.
