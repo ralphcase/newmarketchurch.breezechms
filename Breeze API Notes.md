@@ -10,7 +10,8 @@ I'm trying [https://pypi.org/project/breeze-chms-api/]
 
 Initialize API 
 'breeze_api = breeze.breeze_api(breeze_url='https://newmarketchurch.breezechms.com',
-                               api_key='8dfd0a0d7f5aaec745a73542f58eb8ba')`
+                               api_key=config.breeze_api_key)`
+The config.py file is not included in the git repo for security reasons.
 
 Get all the people
 `
