@@ -1,16 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
-# This notebook does several things for the weekly online shopping orders:
-#
+# # This notebook does several things for the weekly online shopping orders:
+# 
 # - Create a print file for the orders.
+# This includes "1-page" summaries with just the refrigerated items. (These are packed seperately.)
 # - Create a print file for labels to attach to the orders when they are filled.
-# - Print out "1-page" summaries with just the refrigerated items. (These are packed seperately.)
 # - Check-In shoppers to this week's shopping event for all the orders.
 # - Delete old order entries to clean up the Breeze page.
+# 
+# The code depends on the structure and fields in the order form, https://newmarketchurch.breezechms.com/form/6793f4.
+# If that form changes, this script may need corresponding changes.
+# 
+
+# In[1]:
+
 
 import config
 
@@ -112,6 +116,9 @@ else:
 messages = []
 
 def message(m):
+    """
+    Log a message to both the cover sheet and to the console.
+    """
     print(m)
     messages.append(m)
 
@@ -306,7 +313,9 @@ allorders = allorders.drop(columns = refrigFields)
 duporderers = set()
 
 def concatenate(ser):
-    # Collect all the requests from all the orders and include each one just once.
+    """
+    Collect all the requests from all the orders and include each one just once.
+    """
     br = '<br />'    # Order request seperator
     contents = set()
     if len(ser) > 1:
@@ -317,7 +326,7 @@ def concatenate(ser):
     contents.discard('')   # Don't keep blank requests.
 
     # TODO: If there are different addresses on multiple orders from the same person, this code keeps all of them.
-    # This overflows the limited size of the labels.
+    # This can overflow the limited size of the labels.
 
     return br.join(list(contents))
         
@@ -421,7 +430,6 @@ sectionheader = '''
 
 # Template for each row
 rowhtml = Template('<tr><td class="category">{{category}}</td><td>{{items}}</td></tr>')
-
 
 
 # In[14]:
